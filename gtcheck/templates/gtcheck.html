@@ -19,8 +19,9 @@
 	<div style="margin-left: 10%; margin-right: 10%">
 		<img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}"/>
 		<img src="{{ url_for('static', filename=image) }}"/>
-		<div class="mod-text"><textarea name="modtext">{{ modtext }}</textarea></div>
+
 		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
+			<div class="mod-text"><textarea name="modtext">{{ modtext }}</textarea></div>
 			<div style="float: right" id="group1i" class="col s3">
 		<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
 		<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>

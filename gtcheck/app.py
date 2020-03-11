@@ -65,22 +65,25 @@ def gtcheck():
         name = "GTChecker"
     email = repo.config_reader().get_value("user", "email")
     # untracked files to potential add
-    [repo.git.add("-N",item) for item in repo.untracked_files if ".gt.txt" in item]
+    [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     difflist = [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
     for diffidx, item in enumerate(difflist):
         if diffidx < session["skip"]: continue
+        session['modtype'] = "mod"
         difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
         diffcolored = color_diffs(difftext)
         origtext = item.a_blob.data_stream.read().decode('utf-8').strip("\n ")
-        if origtext == "":
+        if origtext == "" and not item.deleted_file or item.new_file:
+            session['modtype'] = "new"
             diffcolored = "<span style='color:green'>This untracked file gets added when committed and deleted when stashed!</span>"
-        if item.b_path:
-            modtext = folder.absolute().joinpath(item.b_path).open().read().strip("\n ")
-        else:
+        if item.deleted_file or not item.b_path:
+            session['modtype'] = "del"
             modtext = ""
             diffcolored = "<span style='color:red'>This file gets deleted when committed and restored when stashed!</span>"
-        fname = folder.joinpath(item.a_path)
+        else:
+            modtext = folder.absolute().joinpath(item.b_path).open().read().strip("\n ")
 
+        fname = folder.joinpath(item.a_path)
         mods = modifications(difftext)
         if repo.index.diff('HEAD'):
             commitmsg = f"[GT Checked] Staged Files: {len(repo.index.diff('HEAD'))}"
@@ -116,7 +119,7 @@ def gtcheck():
         if repo.index.diff('HEAD'):
             commitmsg = f"[GT Checked] Staged Files: {len(repo.index.diff('HEAD'))}"
             modtext = f"Please commit the staged files! You skipped {session['skip']} files."
-            return render_template("gtcheck.html", commitmsg=commitmsg, modtext=modtext)
+            return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext, files_left="0")
         if not difflist:
             return render_template("nofile.html")
         session["skip"] = 0
@@ -133,12 +136,15 @@ def gtcheckedit():
                 fout.write(data['modtext'])
         repo.git.add(str(fname),u=True)
         repo.git.commit('-m', data["commitmsg"])
-        #repo.index.commit(data["commitmsg"])
     elif data['selection'] == 'stash':
-        repo.git.stash('push', str(fname))
+        if session['modtype'] in ["new"]:
+            repo.git.rm('-f',str(fname))
+        elif session['modtype'] in ["del"]:
+            repo.git.checkout('--',str(fname))
+        else:
+            repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
         repo.git.add(str(fname), u=True)
-        #repo.index.add(str(fname))
     else:
         session['skip'] += 1
     return gtcheck()
@@ -150,6 +156,7 @@ def gtcheckinit():
     repo = get_repo(folder)
     session["folder"] = folder
     session["skip"] = 0
+
     if data["branches"] != repo.active_branch:
         assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
         repo.git.checkout(data["branches"])
@@ -208,7 +215,7 @@ if not app.debug:
 def run():
     port = int(os.environ.get('PORT', 5000))
     app.config['SECRET_KEY'] = str(int(time.time()))
-    webbrowser.open_new('http://127.0.0.1:5000/')
+    #webbrowser.open_new('http://127.0.0.1:5000/')
     app.run(host='127.0.0.1', port=port, debug=True)
 
 if __name__ == "__main__":
