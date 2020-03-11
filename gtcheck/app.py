@@ -138,10 +138,7 @@ def gtcheckedit():
         repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
         repo.git.add(str(fname), u=True)
-        #if not fname.exists():
-        #    repo.index.remove(str(fname))
-        #else:
-        #    repo.index.add(str(fname))
+        #repo.index.add(str(fname))
     else:
         session['skip'] += 1
     return gtcheck()
