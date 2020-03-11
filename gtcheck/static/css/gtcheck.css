@@ -1,0 +1,149 @@
+body {
+	width: 100%;
+	background-color: #FFFFFF;
+}
+/*	background-image: ; */
+
+img {
+	max-height: 390px;
+	max-width: 90%;
+}
+
+h2 {
+	margin: 0;
+}
+
+h3 {
+	margin: 0;
+	margin-bottom: 5px;
+}
+
+.col-small{
+    height: 30px;
+}
+
+textarea {
+	border: none;
+	overflow: auto;
+	outline: none;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+	box-shadow: none;
+	line-height:1.4;
+	font-family: 'Monospace', cursive;
+}
+
+.surr-image {
+       opacity: 0.3;
+}
+
+.btn {
+	background-color: grey;
+	color: white;
+	/*color: #232741;*/
+}
+
+.heading {
+	font-family: 'Monospace', cursive;
+	color: black;
+}
+
+.heading-left {
+	font-family: 'Monospace', cursive;
+	color: white;
+	align: left;
+}
+
+.vertical-left {
+  min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+  min-height: 100vh; /* These two lines are counted as one :-)       */
+
+  display: flex;
+  align-items: left;
+}
+
+.image-text {
+	height: 20px;
+	background-color: white;
+	padding: 5px;
+	font-size: 1.5rem;
+    font-family: 'Monospace', cursive;
+	text-align: left;
+}
+
+.diff-text {
+	border-radius: 15px;
+	padding: 5px;
+	background-color: white;
+	font-size: 2.5rem;
+    font-family: 'monospace', cursive;
+}
+
+.orig-text {
+	border-radius: 15px;
+	padding: 5px;
+	color: grey;
+	font-size: 2.5rem;
+    font-family: 'Monospace', cursive;
+}
+
+.mod-text {
+	border-radius: 30px;
+	border: 3px solid #666;
+	padding: 10px;
+	text-align:justify;
+	background-color: white;
+	font-size: 2.5rem;
+    font-family: 'Monospace', cursive;
+}
+
+
+.commit-text {
+	border-radius: 30px;
+	border: 3px solid white;
+	padding: 10px;
+	text-align:justify;
+	background-color: rgba(0, 0, 0, 0.1);
+	font-size: 1rem;
+	color: black;
+    font-family: 'Monospace', cursive;
+}
+
+
+line-span{
+  background-color:red;
+  width:100%;
+  height:1em;
+  display:inline-block;
+}
+/* Place the navbar at the bottom of the page, and make it stick */
+.navbar {
+  background-color: #333;
+  overflow: hidden;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+/* Style the links inside the navigation bar */
+.navbar a {
+  float: left;
+  display: block;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+/* Change the color of links on hover */
+.navbar a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+/* Add a color to the active/current link */
+.navbar a.active {
+  background-color: #4CAF50;
+  color: white;
+}

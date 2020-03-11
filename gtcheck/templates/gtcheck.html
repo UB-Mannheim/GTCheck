@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GT Check</title>
+		<!--CSS files-->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"/>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/gtcheck.css') }}">
+
+	<!--Javascript files-->
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</head>
+<body>
+	<div style="margin-left: 15px; margin-right: 15px;">
+		<h1 class="heading center">GT Check</h1>
+	</div>
+	<div class="col s12 m6 l6"><h4 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h4></div>
+	<div style="margin-left: 10%; margin-right: 10%">
+		<img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}"/>
+		<img src="{{ url_for('static', filename=image) }}"/>
+		<div></div>
+		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
+		<div class="mod-text"><textarea rows="4" name="modtext">{{ modtext }}</textarea></div>
+		<div style="float: right" id="group1i" class="btn-group">
+		<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
+		<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
+		<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
+		<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a>
+		</div>
+		<div class="diff-text">{{ difftext }}</div>
+		<div class="orig-text">{{ origtext }}</div>
+		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
+		</form>
+		<img class = "surr-image" src="{{ url_for('static', filename=postimage)  }}"/>
+	</div>
+	<div class="row" style="float:right">
+            <div class="col s2">
+				<label style="font-size:0.5rem" for="name">Name</label>
+				<input class="validate" type="text" id="name" name="name" value="{{ name }}">
+            </div>
+            <div class="col s2">
+				<label style="font-size:0.5rem" for="email">Email</label>
+                <input type="text"  id="email" name="email" value="{{ email }}">
+            </div>
+			<div class="col s2">
+				<label style="font-size:0.5rem" for="branch">Branch</label>
+                <input type="text" id="branch" name="branch" value="{{ branch }}" readonly>
+            </div>
+			<div class="col s2">
+				<label style="font-size:0.5rem" for="files_left">Files left</label>
+                <input type="text"  id="files_left" name="files_left" value="{{ files_left }}" readonly>
+            </div>
+			<div class="col s2">
+				<label style="font-size:0.5rem" for="skipped">Files skipped</label>
+                <input type="text"  id="skipped" name="skipped" value="{{ skipped }}" readonly>
+            </div>
+	</div>
+<script>
+window.addEventListener("keyup", function(event) {
+		if (event.keyCode === 39) {
+		   event.preventDefault();
+		   document.getElementById("commit!").click();
+		  }
+		  if (event.keycode === 37) {
+		   event.preventDefault();
+		   document.getElementById("stash!").click();
+		  }
+		  if (event.keyCode === 38) {
+		   event.preventDefault();
+		   document.getElementById("skip!").click();
+		  }
+		  if (event.keyCode === 40) {
+		   event.preventDefault();
+		   document.getElementById("add!").click();
+		  }
+		});
+</script>
+
+</body>
+</html>
