@@ -102,12 +102,12 @@ def gtcheck():
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext, files_left=str(len(difflist)),
                                    iname="No image", fname=str(fname.name), skipped=session['skip'])
         else:
-            img_out = str(imgfolder.joinpath(img.name)).split("static")[-1]
+            img_out = str(imgfolder.joinpath(img.name)).split("static")[-1][1:]
             prev_img, post_img = surrounding_images(fname.parent, img)
             if not isinstance(prev_img, str):
-                prev_img = str(imgfolder.joinpath(prev_img.name)).split("static")[-1]
+                prev_img = str(imgfolder.joinpath(prev_img.name)).split("static")[-1][1:]
             if not isinstance(post_img, str):
-                post_img = str(imgfolder.joinpath(post_img.name)).split("static")[-1]
+                post_img = str(imgfolder.joinpath(post_img.name)).split("static")[-1][1:]
 
             return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name, email=email, commitmsg=commitmsg, image=img_out, previmage=prev_img, postimage=post_img,
                                difftext=Markup(diffcolored), origtext=origtext, modtext=modtext, files_left=str(len(difflist)),
@@ -125,17 +125,23 @@ def gtcheck():
 @app.route("/gtcheckedit", methods=["GET", "POST"])
 def gtcheckedit():
     repo = get_repo(session["folder"])
-    fname = Path(session['fpath'])
+    fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form #.to_dict(flat=False)
     if data['selection'] == 'commit':
         if session['modtext'] != data['modtext']:
-            fname.open().write(data['modtext'])
-        repo.index.add(str(fname))
-        repo.index.commit(data["commitmsg"])
+            with open(fname, "w") as fout:
+                fout.write(data['modtext'])
+        repo.git.add(str(fname),u=True)
+        repo.git.commit('-m', data["commitmsg"])
+        #repo.index.commit(data["commitmsg"])
     elif data['selection'] == 'stash':
         repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
-        repo.index.add(str(fname))
+        repo.git.add(str(fname), u=True)
+        #if not fname.exists():
+        #    repo.index.remove(str(fname))
+        #else:
+        #    repo.index.add(str(fname))
     else:
         session['skip'] += 1
     return gtcheck()
