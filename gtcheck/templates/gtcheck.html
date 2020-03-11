@@ -19,19 +19,18 @@
 	<div style="margin-left: 10%; margin-right: 10%">
 		<img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}"/>
 		<img src="{{ url_for('static', filename=image) }}"/>
-		<div></div>
+		<div class="mod-text"><textarea name="modtext">{{ modtext }}</textarea></div>
 		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
-		<div class="mod-text"><textarea rows="4" name="modtext">{{ modtext }}</textarea></div>
-		<div style="float: right" id="group1i" class="btn-group">
+			<div style="float: right" id="group1i" class="col s3">
 		<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
 		<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
 		<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
-		<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a>
-		</div>
-		<div class="diff-text">{{ difftext }}</div>
+		<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a></div>
+		<div class="diff-text" style="clear: both" >{{ difftext }}</div>
 		<div class="orig-text">{{ origtext }}</div>
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
 		</form>
+
 		<img class = "surr-image" src="{{ url_for('static', filename=postimage)  }}"/>
 	</div>
 	<div class="row" style="float:right">

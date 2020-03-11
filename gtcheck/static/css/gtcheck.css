@@ -38,6 +38,17 @@ textarea {
 }
 
 .btn {
+    border: none;
+    border-radius: 2px;
+    display: inline-block;
+    height: 32px;
+    line-height: 32px;
+    padding-left: 16px;
+    padding-right: 16px;
+    text-transform: uppercase;
+    max-font-size: 13pt;
+    vertical-align: middle;
+    -webkit-tap-highlight-color: transparent;
 	background-color: grey;
 	color: white;
 	/*color: #232741;*/
