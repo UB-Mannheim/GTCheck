@@ -78,7 +78,7 @@ def gtcheck():
     difflist = [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
                 ".gt.txt" in "".join(Path(item.a_path).suffixes)]
     mergelist = []
-    if not difflist:
+    if not difflist or session["skip"] == len(difflist):
         mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
     for diffidx, item in enumerate(difflist + mergelist):
         if diffidx < session["skip"]: continue
