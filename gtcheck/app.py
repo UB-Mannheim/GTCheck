@@ -5,13 +5,13 @@ import os
 import re
 import sys
 import time
+import webbrowser
+from functools import lru_cache
 from logging import Formatter, FileHandler
 from pathlib import Path
-import webbrowser
 
 from flask import Flask, render_template, request, Markup, session
 from git import Repo
-from functools import lru_cache
 
 app = Flask(__name__)
 
@@ -32,19 +32,20 @@ def modifications(difftext):
         mods.append([sub, add])
     return mods
 
-def color_diffs(difftext):
-    return difftext.replace("{+",'<span style="color:green">')\
-        .replace("+}","</span>")\
-        .replace("[-",'<span style="color:red">')\
-        .replace("-]","</span>")
 
-def surrounding_images(img, imgfolder, folder):
-    import re
-    imgmatch = re.match(r"^(.*?)(\d+)(\D*)$",img.name)
+def color_diffs(difftext):
+    return difftext.replace("{+", '<span style="color:green">') \
+        .replace("+}", "</span>") \
+        .replace("[-", '<span style="color:red">') \
+        .replace("-]", "</span>")
+
+
+def surrounding_images(img, folder):
+    imgmatch = re.match(r"^(.*?)(\d+)(\D*)$", img.name)
     imgint = int(imgmatch[2])
     imgprefix = img.name[:imgmatch.regs[1][1]]
     imgpostfix = img.name[imgmatch.regs[3][0]:]
-    prev_img = img.parent.joinpath(imgprefix+str(imgint-1)+imgpostfix)
+    prev_img = img.parent.joinpath(imgprefix + str(imgint - 1) + imgpostfix)
     post_img = img.parent.joinpath(imgprefix + str(imgint + 1) + imgpostfix)
     if prev_img.exists():
         prev_img = Path("./symlink/").joinpath(prev_img.relative_to(folder.parent))
@@ -56,9 +57,11 @@ def surrounding_images(img, imgfolder, folder):
         post_img = None
     return prev_img, post_img
 
+
 @lru_cache(maxsize=None)
 def get_repo(path):
     return Repo(path, search_parent_directories=True)
+
 
 @app.route("/gtcheck", methods=["GET", "POST"])
 def gtcheck():
@@ -69,26 +72,28 @@ def gtcheck():
         name = "GTChecker"
     email = repo.config_reader().get_value("user", "email")
     # Diff Head
-    diffhead = repo.git.diff('--cached','--shortstat').strip().split(" ")[0]
+    diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
     # untracked files to potential add
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
-    difflist = [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
-    mergelist =  [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
-    for diffidx, item in enumerate(difflist+mergelist):
+    difflist = [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
+                ".gt.txt" in "".join(Path(item.a_path).suffixes)]
+    mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
+    for diffidx, item in enumerate(difflist + mergelist):
         if diffidx < session["skip"]: continue
         if not item.a_blob and not item.b_blob: continue
         session['modtype'] = "mod"
         mergetext = []
         origtext = item.a_blob.data_stream.read().decode('utf-8').strip("\n ")
         if "<<<<<<< HEAD\n" in origtext:
-            with open(folder.joinpath(item.a_path),"r") as fin:
+            with open(folder.joinpath(item.a_path), "r") as fin:
                 mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
                 from subprocess import run, PIPE
-                p = run(['git','hash-object','-','--stdin'], stdout=PIPE,
+                p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
                         input=mergetext[0], encoding='utf-8')
-                p2 = run(['git','hash-object','-','--stdin'], stdout=PIPE,
-                        input=mergetext[1], encoding='utf-8')
-                difftext = repo.git.diff(p.stdout.strip(),p2.stdout.strip(),"-p","--word-diff").split("@@")[-1].strip()
+                p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
+                         input=mergetext[1], encoding='utf-8')
+                difftext = repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[
+                    -1].strip()
         else:
             difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
         diffcolored = color_diffs(difftext)
@@ -119,25 +124,31 @@ def gtcheck():
         imgfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/{folder.name}")
         # Create symlink to imagefolder
         if not imgfolder.exists():
-            #print(imgfolder)
+            # print(imgfolder)
             imgfolder.symlink_to(folder)
-        inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('.gt.txt','')}*") if imghdr.what(iname)]
+        inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('.gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
         if not img:
-            return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name, email=email ,commitmsg=commitmsg,
-                                   difftext=Markup(diffcolored), origtext=origtext, modtext=modtext, files_left=str(len(difflist)),
+            return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name,
+                                   email=email, commitmsg=commitmsg,
+                                   difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
+                                   files_left=str(len(difflist)),
                                    iname="No image", fname=str(fname.name), skipped=session['skip'])
         else:
             img_out = Path("./symlink/").joinpath(img.relative_to(folder.parent))
-            prev_img, post_img = surrounding_images(img, imgfolder, folder)
-            return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name, email=email, commitmsg=commitmsg, image=img_out, previmage=prev_img, postimage=post_img,
-                               difftext=Markup(diffcolored), origtext=origtext, modtext=modtext, files_left=str(len(difflist)),
-                               iname=str(img.name), fname=str(fname.name), skipped=session['skip'])
+            prev_img, post_img = surrounding_images(img, folder)
+            return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name,
+                                   email=email, commitmsg=commitmsg, image=img_out, previmage=prev_img,
+                                   postimage=post_img,
+                                   difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
+                                   files_left=str(len(difflist)),
+                                   iname=str(img.name), fname=str(fname.name), skipped=session['skip'])
     else:
         if diffhead:
             commitmsg = f"[GT Checked] Staged Files: {len(diffhead)}"
             modtext = f"Please commit the staged files! You skipped {session['skip']} files."
-            return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext, files_left="0")
+            return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext,
+                                   files_left="0")
         if not difflist:
             return render_template("nofile.html")
         session["skip"] = 0
@@ -147,18 +158,18 @@ def gtcheck():
 def gtcheckedit():
     repo = get_repo(session["folder"])
     fname = Path(session["folder"]).joinpath(session['fpath'])
-    data = request.form #.to_dict(flat=False)
+    data = request.form  # .to_dict(flat=False)
     if data['selection'] == 'commit':
         if session['modtext'] != data['modtext'] or session['modtype'] == "merge":
             with open(fname, "w") as fout:
                 fout.write(data['modtext'])
-        repo.git.add(str(fname),u=True)
+        repo.git.add(str(fname), u=True)
         repo.git.commit('-m', data["commitmsg"])
     elif data['selection'] == 'stash':
         if session['modtype'] in ["new"]:
-            repo.git.rm('-f',str(fname))
+            repo.git.rm('-f', str(fname))
         elif session['modtype'] in ["del"]:
-            repo.git.checkout('--',str(fname))
+            repo.git.checkout('--', str(fname))
         else:
             repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
@@ -167,17 +178,18 @@ def gtcheckedit():
         session['skip'] += 1
     return gtcheck()
 
+
 @app.route("/gtcheckinit", methods=["POST"])
 def gtcheckinit():
-    data = request.form #.to_dict(flat=False)
+    data = request.form  # .to_dict(flat=False)
     folder = data['repo']
     repo = get_repo(folder)
     session["folder"] = folder
     session["skip"] = 0
     if data["branches"] != repo.active_branch:
         assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
-        #repo.git.checkout(data["branches"])
-    if data.get("checkout","off") == "on" and data["new_branch"] != "":
+        # repo.git.checkout(data["branches"])
+    if data.get("checkout", "off") == "on" and data["new_branch"] != "":
         assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
         repo.git.checkout(data["checkout"], b=data["new_branch"])
         # Check requirements
@@ -193,6 +205,7 @@ def clean_symlinks():
             folder.unlink()
     return
 
+
 @app.route("/")
 def index():
     if len(sys.argv) > 1:
@@ -206,7 +219,8 @@ def index():
     if name == "":
         name = "GTChecker"
     email = repo.config_reader().get_value("user", "email")
-    return render_template("setup.html", name=name, email=email, repo=str(folder), active_branch = repo.active_branch, branches=repo.branches)
+    return render_template("setup.html", name=name, email=email, repo=str(folder), active_branch=repo.active_branch,
+                           branches=repo.branches)
 
 
 @app.errorhandler(500)
@@ -217,6 +231,7 @@ def internal_error(error):
 @app.errorhandler(404)
 def not_found_error(error):
     print(str(error))
+
 
 if not app.debug:
     file_handler = FileHandler('error.log')
@@ -236,6 +251,6 @@ def run():
     webbrowser.open_new('http://127.0.0.1:5000/')
     app.run(host='127.0.0.1', port=port, debug=True)
 
+
 if __name__ == "__main__":
     run()
-
