@@ -5,8 +5,8 @@ body {
 /*	background-image: ; */
 
 img {
-	max-height: 390px;
-	max-width: 90%;
+    width: 90%; /* you can use % */
+    height: auto;
 }
 
 h2 {
@@ -29,12 +29,12 @@ textarea {
 	-webkit-box-shadow: none;
 	-moz-box-shadow: none;
 	box-shadow: none;
-	line-height:1.4;
+	height:auto;
 	font-family: 'Monospace', cursive;
 }
 
 .surr-image {
-       opacity: 0.3;
+       opacity: 0.5;
 }
 
 .btn {

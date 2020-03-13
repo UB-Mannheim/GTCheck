@@ -10,7 +10,7 @@ from functools import lru_cache
 from logging import Formatter, FileHandler
 from pathlib import Path
 
-from flask import Flask, render_template, request, Markup, session
+from flask import Flask, render_template, request, Markup, session, flash
 from git import Repo
 
 app = Flask(__name__)
@@ -77,7 +77,9 @@ def gtcheck():
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     difflist = [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
                 ".gt.txt" in "".join(Path(item.a_path).suffixes)]
-    mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
+    mergelist = []
+    if not difflist:
+        mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
     for diffidx, item in enumerate(difflist + mergelist):
         if diffidx < session["skip"]: continue
         if not item.a_blob and not item.b_blob: continue
@@ -124,7 +126,6 @@ def gtcheck():
         imgfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/{folder.name}")
         # Create symlink to imagefolder
         if not imgfolder.exists():
-            # print(imgfolder)
             imgfolder.symlink_to(folder)
         inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('.gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
@@ -219,6 +220,9 @@ def index():
     if name == "":
         name = "GTChecker"
     email = repo.config_reader().get_value("user", "email")
+    diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
+    if diffhead != "":
+        flash(f"You have {diffhead} staged file[s] in the {repo.active_branch} branch! These files will be added to the next commit.")
     return render_template("setup.html", name=name, email=email, repo=str(folder), active_branch=repo.active_branch,
                            branches=repo.branches)
 
