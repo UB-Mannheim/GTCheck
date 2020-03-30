@@ -45,16 +45,16 @@ def surrounding_images(img, folder):
     imgint = int(imgmatch[2])
     imgprefix = img.name[:imgmatch.regs[1][1]]
     imgpostfix = img.name[imgmatch.regs[3][0]:]
-    prev_img = img.parent.joinpath(imgprefix + str(imgint - 1) + imgpostfix)
-    post_img = img.parent.joinpath(imgprefix + str(imgint + 1) + imgpostfix)
+    prev_img = img.parent.joinpath(imgprefix + f"{imgint - 1:0{imgmatch.regs[2][1]-imgmatch.regs[2][0]}d}" + imgpostfix)
+    post_img = img.parent.joinpath(imgprefix + f"{imgint + 1:0{imgmatch.regs[2][1]-imgmatch.regs[2][0]}d}" + imgpostfix)
     if prev_img.exists():
         prev_img = Path("./symlink/").joinpath(prev_img.relative_to(folder.parent))
     else:
-        prev_img = None
+        prev_img = ""
     if post_img.exists():
         post_img = Path("./symlink/").joinpath(post_img.relative_to(folder.parent))
     else:
-        post_img = None
+        post_img = ""
     return prev_img, post_img
 
 
