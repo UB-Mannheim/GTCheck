@@ -8,13 +8,13 @@ GTCheck
 
 If the Ground Truth data is version controlled by an git repository, than you can use 
 "GTCheck" to validate and commit your modification. 
-Therefore GTCheck will display the original linetext and the modified version as well as the
+Therefore GTCheck will display for any line the original text, the modified version as well as the
 corresponding image.
 
 ## Installation
 
 This installation is tested with Ubuntu and we expect that it should
-work for other similar environments similarly.
+work for other similar environments.
 
 ### 1. Requirements
 - Python> 3.6
@@ -25,9 +25,9 @@ git clone https://github.com/JKamlah/GTCheck.git
 cd GTCheck
 ```
 
-### 3. Installation into a Python Virtual Environment:
+### 3. Installation into a Python Virtual Environment
 
-    $ virtualenv venv/
+    $ python3 -m venv venv
     $ source venv/bin/activate
     $ pip install -r requirements.txt
     $ python setup.py install
@@ -41,10 +41,10 @@ cd GTCheck
 ### Setup Page
 In the first page you can set up your git credentials and select the branch or create a new branch for commiting the modfications.
 
-### GTCheck Pagee
+### GTCheck Page
 In this page you can see and edit the modifications and the original text. 
 
-The modifications can be committed (with the commitmessage), skipped (if not clear what to do), added to the stage mode and later can be committed all at once or can be stashed (keep the original version).
+The modifications can be committed (with the commit message), skipped (if not clear what to do), added to the stage mode and later can be commited all at once or can be stashed (keep the original version).
 
 Copyright and License
 --------
