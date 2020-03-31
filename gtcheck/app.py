@@ -62,6 +62,21 @@ def surrounding_images(img, folder):
 def get_repo(path):
     return Repo(path, search_parent_directories=True)
 
+def get_difftext(origtext, item, folder, repo):
+    if "<<<<<<< HEAD\n" in origtext:
+        with open(folder.joinpath(item.a_path), "r") as fin:
+            mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
+            from subprocess import run, PIPE
+            p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
+                    input=mergetext[0], encoding='utf-8')
+            p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
+                     input=mergetext[1], encoding='utf-8')
+            difftext = repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[
+                -1].strip()
+    else:
+        difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
+    return difftext
+
 
 @app.route("/gtcheck", methods=["GET", "POST"])
 def gtcheck():
@@ -79,25 +94,17 @@ def gtcheck():
                 ".gt.txt" in "".join(Path(item.a_path).suffixes)]
     mergelist = []
     if not difflist or session["skip"] == len(difflist):
-        mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes)]
+        difflistfiles = [item.a_path for item in difflist]
+        mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes) and item.a_path not in difflistfiles]
+        if not mergelist:
+            session["skip"] = 0
     for diffidx, item in enumerate(difflist + mergelist):
         if diffidx < session["skip"]: continue
         if not item.a_blob and not item.b_blob: continue
         session['modtype'] = "mod"
         mergetext = []
         origtext = item.a_blob.data_stream.read().decode('utf-8').strip("\n ")
-        if "<<<<<<< HEAD\n" in origtext:
-            with open(folder.joinpath(item.a_path), "r") as fin:
-                mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
-                from subprocess import run, PIPE
-                p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
-                        input=mergetext[0], encoding='utf-8')
-                p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
-                         input=mergetext[1], encoding='utf-8')
-                difftext = repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[
-                    -1].strip()
-        else:
-            difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
+        difftext = get_difftext(origtext, item, folder, repo)
         diffcolored = color_diffs(difftext)
         if origtext == "" and not item.deleted_file or item.new_file:
             session['modtype'] = "new"
