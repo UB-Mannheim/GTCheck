@@ -22,10 +22,10 @@
 		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
 			<div class="mod-text"><textarea name="modtext" contenteditable="true">{{ modtext }}</textarea></div>
 			<div style="float: right" id="group1i" class="col s3">
-		<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
-		<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
-		<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
-		<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a></div>
+				<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
+				<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
+				<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
+				<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a></div>
 		<div class="diff-text" style="clear: both" >{{ difftext }}</div>
 		<div class="orig-text">{{ origtext }}</div>
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
@@ -57,19 +57,19 @@
 	</div>
 <script>
 window.addEventListener("keyup", function(event) {
-		if (event.keyCode === 39) {
+		if (event.keyCode === 113) {
 		   event.preventDefault();
 		   document.getElementById("commit!").click();
 		  }
-		  if (event.keycode === 37) {
+		  if (event.keycode === 115) {
 		   event.preventDefault();
 		   document.getElementById("stash!").click();
 		  }
-		  if (event.keyCode === 38) {
+		  if (event.keyCode === 114) {
 		   event.preventDefault();
 		   document.getElementById("skip!").click();
 		  }
-		  if (event.keyCode === 40) {
+		  if (event.keyCode === 112) {
 		   event.preventDefault();
 		   document.getElementById("add!").click();
 		  }
