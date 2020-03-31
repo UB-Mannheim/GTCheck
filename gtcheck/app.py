@@ -174,6 +174,9 @@ def gtcheckedit():
         else:
             repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
+        if session['modtext'] != data['modtext'] or session['modtype'] == "merge":
+            with open(fname, "w") as fout:
+                fout.write(data['modtext'])
         repo.git.add(str(fname), u=True)
     else:
         session['skip'] += 1
