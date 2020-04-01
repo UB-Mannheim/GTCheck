@@ -153,7 +153,7 @@ def gtcheck():
                                    iname=str(img.name), fname=str(fname.name), skipped=session['skip'])
     else:
         if diffhead:
-            commitmsg = f"[GT Checked] Staged Files: {len(diffhead)}"
+            commitmsg = f"[GT Checked] Staged Files: {diffhead}"
             modtext = f"Please commit the staged files! You skipped {session['skip']} files."
             return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext,
                                    files_left="0")
