@@ -139,7 +139,6 @@ def gtcheck():
             imgfolder.symlink_to(folder)
         inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
-        print(session.__sizeof__())
         if not img:
             return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name,
                                    email=email, commitmsg=commitmsg,
