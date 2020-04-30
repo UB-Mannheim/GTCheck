@@ -58,7 +58,7 @@ def surrounding_images(img, folder):
     return prev_img, post_img
 
 
-@lru_cache(maxsize=None)
+#@lru_cache(maxsize=None)
 def get_repo(path):
     return Repo(path, search_parent_directories=True)
 
@@ -83,24 +83,28 @@ def gtcheck():
     repo = get_repo(session["folder"])
     folder = Path(session["folder"])
     name = repo.config_reader().get_value("user", "name")
-    if name == "":
-        name = "GTChecker"
+    name = "GTChecker" if name == "" else name
     email = repo.config_reader().get_value("user", "email")
     # Diff Head
     diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
-    # untracked files to potential add
-    [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
-    difflist = [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
-                ".gt.txt" in "".join(Path(item.a_path).suffixes)]
-    mergelist = []
-    if not difflist or session["skip"] == len(difflist):
-        difflistfiles = [item.a_path for item in difflist]
-        mergelist = [item for item in repo.index.diff(None) if ".gt.txt" in "".join(Path(item.a_path).suffixes) and item.a_path not in difflistfiles]
-        if not mergelist:
-            session["skip"] = 0
-    for diffidx, item in enumerate(difflist + mergelist):
-        if diffidx < session["skip"]: continue
-        if not item.a_blob and not item.b_blob: continue
+    #difflist =  [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
+    #            ".gt.txt" in "".join(Path(item.a_path).suffixes)]
+    if not session['difflist'] or len(session['difflist']) <= session['skip']:
+        session['difflist'] = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
+        if len(session['difflist']) <= session['skip']:
+            session['difflist'] = [None]*session['skip']
+        else:
+            session['difflen'] = len(session['difflist'])
+            session['difflist'] = session['difflist'][:session['skip']+100]
+    for fileidx, filename in enumerate(session['difflist'][session['skip']:]):
+        item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex=".")
+        if item:
+            item = item[0]
+        else:
+            item = repo.index.diff(None, paths=[filename])[0]
+        if not item.a_blob and not item.b_blob:
+            session['difflist'].pop(session['skip']+fileidx)
+            continue
         session['modtype'] = "mod"
         mergetext = []
         origtext = item.a_blob.data_stream.read().decode('utf-8').strip("\n ")
@@ -128,19 +132,19 @@ def gtcheck():
         session['modtext'] = modtext
         session['fname'] = str(fname)
         session['fpath'] = str(item.a_path)
-        session['diffidx'] = diffidx
-
+        session['fileidx'] = fileidx
         imgfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/{folder.name}")
         # Create symlink to imagefolder
         if not imgfolder.exists():
             imgfolder.symlink_to(folder)
-        inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('.gt.txt', '')}*") if imghdr.what(iname)]
+        inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
+        print(session.__sizeof__())
         if not img:
             return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name,
                                    email=email, commitmsg=commitmsg,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(len(difflist)),
+                                   files_left=str(session['difflen']-session['skip']),
                                    iname="No image", fname=str(fname.name), skipped=session['skip'])
         else:
             img_out = Path("./symlink/").joinpath(img.relative_to(folder.parent))
@@ -149,7 +153,7 @@ def gtcheck():
                                    email=email, commitmsg=commitmsg, image=img_out, previmage=prev_img,
                                    postimage=post_img,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(len(difflist)),
+                                   files_left=str(session['difflen']-session['skip']),
                                    iname=str(img.name), fname=str(fname.name), skipped=session['skip'])
     else:
         if diffhead:
@@ -157,10 +161,15 @@ def gtcheck():
             modtext = f"Please commit the staged files! You skipped {session['skip']} files."
             return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext,
                                    files_left="0")
-        if not difflist:
+        if not session['difflist']:
             return render_template("nofile.html")
         session["skip"] = 0
+        return gtcheck()
 
+def pop_idx(lname, popidx):
+    if len(session[lname]) > popidx:
+        session[lname].pop(popidx)
+    return
 
 @app.route("/gtcheckedit", methods=["GET", "POST"])
 def gtcheckedit():
@@ -168,11 +177,13 @@ def gtcheckedit():
     fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form  # .to_dict(flat=False)
     if data['selection'] == 'commit':
-        if session['modtext'] != data['modtext'] or session['modtype'] == "merge":
-            with open(fname, "w") as fout:
-                fout.write(data['modtext'])
-        repo.git.add(str(fname), u=True)
+        if session['difflen']-session['skip'] != 0:
+            if session['modtext'] != data['modtext'] or session['modtype'] == "merge":
+                with open(fname, "w") as fout:
+                    fout.write(data['modtext'])
+            repo.git.add(str(fname), u=True)
         repo.git.commit('-m', data["commitmsg"])
+        session['difflist'] = []
     elif data['selection'] == 'stash':
         if session['modtype'] in ["new"]:
             repo.git.rm('-f', str(fname))
@@ -187,6 +198,8 @@ def gtcheckedit():
         repo.git.add(str(fname), u=True)
     else:
         session['skip'] += 1
+        return gtcheck()
+    pop_idx('difflist', session['skip'] + session['fileidx'])
     return gtcheck()
 
 
@@ -195,8 +208,12 @@ def gtcheckinit():
     data = request.form  # .to_dict(flat=False)
     folder = data['repo']
     repo = get_repo(folder)
+    session.clear()
     session["folder"] = folder
     session["skip"] = 0
+    session['difflist'] = []
+    # untracked files to potential add
+    [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     if data["branches"] != repo.active_branch:
         assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
         # repo.git.checkout(data["branches"])
