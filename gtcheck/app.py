@@ -62,19 +62,30 @@ def surrounding_images(img, folder):
 def get_repo(path):
     return Repo(path, search_parent_directories=True)
 
+def get_gitdifftext(orig, diff, repo):
+    from subprocess import run, PIPE
+    p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
+            input=orig, encoding='utf-8')
+    p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
+             input=diff, encoding='utf-8')
+    return repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[
+        -1].strip()
+
 def get_difftext(origtext, item, folder, repo):
     if "<<<<<<< HEAD\n" in origtext:
         with open(folder.joinpath(item.a_path), "r") as fin:
             mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
-            from subprocess import run, PIPE
-            p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
-                    input=mergetext[0], encoding='utf-8')
-            p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
-                     input=mergetext[1], encoding='utf-8')
-            difftext = repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[
-                -1].strip()
+        difftext = get_gitdifftext(mergetext[0],mergetext[1], repo)
     else:
-        difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
+        try:
+            difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
+        except UnicodeDecodeError as ex:
+            print("Warning the diff text could not be decoded! ",ex)
+            try:
+                difftext = get_gitdifftext(origtext, item.b_blob.data_stream.read().decode(), repo)
+            except Exception as ex2:
+                print("Both files could not be compared!")
+                difftext = ""
     return difftext
 
 
@@ -107,7 +118,7 @@ def gtcheck():
             continue
         session['modtype'] = "mod"
         mergetext = []
-        origtext = item.a_blob.data_stream.read().decode('utf-8').strip("\n ")
+        origtext = item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
         difftext = get_difftext(origtext, item, folder, repo)
         diffcolored = color_diffs(difftext)
         if origtext == "" and not item.deleted_file or item.new_file:
@@ -121,7 +132,7 @@ def gtcheck():
             session['modtype'] = "merge"
             modtext = mergetext[1]
         else:
-            modtext = folder.absolute().joinpath(item.b_path).open().read().strip("\n ")
+            modtext = folder.absolute().joinpath(item.b_path).open().read().lstrip(" ")
 
         fname = folder.joinpath(item.a_path)
         mods = modifications(difftext)
@@ -175,11 +186,12 @@ def gtcheckedit():
     repo = get_repo(session["folder"])
     fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form  # .to_dict(flat=False)
+    modtext = data['modtext'].replace("\r\n","\n")
     if data['selection'] == 'commit':
         if session['difflen']-session['skip'] != 0:
-            if session['modtext'] != data['modtext'] or session['modtype'] == "merge":
+            if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
                 with open(fname, "w") as fout:
-                    fout.write(data['modtext'])
+                    fout.write(modtext)
             repo.git.add(str(fname), u=True)
         repo.git.commit('-m', data["commitmsg"])
         session['difflist'] = []
@@ -191,9 +203,9 @@ def gtcheckedit():
         else:
             repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
-        if session['modtext'] != data['modtext'] or session['modtype'] == "merge":
+        if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
             with open(fname, "w") as fout:
-                fout.write(data['modtext'])
+                fout.write(modtext)
         repo.git.add(str(fname), u=True)
     else:
         session['skip'] += 1
@@ -269,8 +281,8 @@ if not app.debug:
         Formatter('%(asctime)s %(levelname)s: \
             %(message)s [in %(pathname)s:%(lineno)d]')
     )
-    hey = logging
-    app.logger.setLevel(logging.INFO)
+    #hey = logging
+    #app.logger.setLevel(logging.INFO)
     file_handler.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
 
