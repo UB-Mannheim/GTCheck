@@ -1,2 +1,3 @@
+include gtcheck/favicon.ico
 recursive-include gtcheck/templates *
 recursive-include gtcheck/static *
