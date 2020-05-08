@@ -107,7 +107,8 @@ def gtcheck():
         else:
             session['difflen'] = len(session['difflist'])
             session['difflist'] = session['difflist'][:session['skip']+100]
-    for fileidx, filename in enumerate(session['difflist'][session['skip']:]):
+    difflist = session['difflist'][session['skip']:]
+    for fileidx, filename in enumerate(difflist):
         item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex=".")
         if item:
             item = item[0]
@@ -133,7 +134,12 @@ def gtcheck():
             modtext = mergetext[1]
         else:
             modtext = folder.absolute().joinpath(item.b_path).open().read().lstrip(" ")
-
+        if origtext.strip() == modtext.strip() and session['ignorecc']:
+            if session["addcc"]:
+                repo.git.add(str(filename), u=True)
+            else:
+                session["skip"]+=1
+            continue
         fname = folder.joinpath(item.a_path)
         mods = modifications(difftext)
         if diffhead:
@@ -223,6 +229,8 @@ def gtcheckinit():
     session["folder"] = folder
     session["skip"] = 0
     session['difflist'] = []
+    session['addcc'] = data['addcc']
+    session['ignorecc'] = data['ignorecc']
     # untracked files to potential add
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     if data["branches"] != repo.active_branch:

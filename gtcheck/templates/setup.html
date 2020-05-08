@@ -70,6 +70,26 @@
         </div>
         <input id="new_branch" type="text" class="validate" name="new_branch" value="">
     </div>
+        <h4>Settings</h4><br>
+        <label for="ignoreCC">Ignore files with only ControlCharacter differences</label>
+        <div class="switch active" id="ignoreCC">
+            <label>
+                Off
+                <input type="checkbox" name="ignoreCC" checked>
+                <span class="lever"></span>
+                On
+            </label>
+        </div>
+        <label for="addCC">Add files with only ControlCharacter</label>
+        <div class="switch active" id="addCC">
+            <label>
+                Off
+                <input type="checkbox" name="addCC">
+                <span class="lever"></span>
+                On
+            </label>
+        </div><br>
+        <br>
     <button class="btn waves-effect waves-light" type="submit">Start</button>
     </form>
     {% if error %}
