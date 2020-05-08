@@ -37,8 +37,8 @@ window.addEventListener("keyup", function(event) {
 	</div>
 	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
-		<img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/>
-		<img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/>
+		<div><img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		<div><img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/></div>
 		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
 			<div class="mod-text"><textarea name="modtext" contenteditable="true">{{ modtext }}</textarea></div>
 			<div style="float: right" id="group1i" class="col s3">
