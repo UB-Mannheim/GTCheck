@@ -109,6 +109,7 @@ def gtcheck():
             session['difflen'] = len(session['difflist'])
             session['difflist'] = session['difflist'][:session['skip']+100]
     difflist = session['difflist'][session['skip']:]
+    nextcounter = 0
     for fileidx, filename in enumerate(difflist):
         item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex=".")
         if item:
@@ -116,7 +117,8 @@ def gtcheck():
         else:
             item = repo.index.diff(None, paths=[filename])[0]
         if not item.a_blob and not item.b_blob:
-            session['difflist'].pop(session['skip']+fileidx)
+            pop_idx('difflist', session['skip'] + fileidx)
+            nextcounter += 1
             continue
         session['modtype'] = "mod"
         mergetext = []
@@ -136,7 +138,9 @@ def gtcheck():
         else:
             modtext = folder.absolute().joinpath(item.b_path).open().read().lstrip(" ")
         if origtext.strip() == modtext.strip() and session['skipcc']:
+            nextcounter += 1
             if session["addcc"]:
+                pop_idx('difflist',session['skip'] + fileidx)
                 repo.git.add(str(filename), u=True)
             else:
                 session["skip"]+=1
@@ -150,7 +154,7 @@ def gtcheck():
         session['modtext'] = modtext
         session['fname'] = str(fname)
         session['fpath'] = str(item.a_path)
-        session['fileidx'] = fileidx
+        session['fileidx'] = fileidx-nextcounter
         imgfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/{folder.name}")
         # Create symlink to imagefolder
         if not imgfolder.exists():
