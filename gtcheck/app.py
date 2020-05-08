@@ -198,10 +198,10 @@ def gtcheckedit():
     elif data['selection'] == 'stash':
         if session['modtype'] in ["new"]:
             repo.git.rm('-f', str(fname))
-        elif session['modtype'] in ["del"]:
-            repo.git.checkout('--', str(fname))
         else:
-            repo.git.stash('push', str(fname))
+            repo.git.checkout('--', str(fname))
+            # Used stash push but it seems to have negative side effects
+            #repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
         if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
             with open(fname, "w") as fout:
