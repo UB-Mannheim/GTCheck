@@ -41,7 +41,8 @@ def color_diffs(difftext):
 
 
 def surrounding_images(img, folder):
-    imgmatch = re.match(r"^(.*?)(\d+)(\D*)$", img.name)
+    # Default  ^(.*?)(\d+)(\D*)$
+    imgmatch = re.match(rf"{session['regexnum']}", img.name)
     imgint = int(imgmatch[2])
     imgprefix = img.name[:imgmatch.regs[1][1]]
     imgpostfix = img.name[imgmatch.regs[3][0]:]
@@ -134,7 +135,7 @@ def gtcheck():
             modtext = mergetext[1]
         else:
             modtext = folder.absolute().joinpath(item.b_path).open().read().lstrip(" ")
-        if origtext.strip() == modtext.strip() and session['ignorecc']:
+        if origtext.strip() == modtext.strip() and session['skipcc']:
             if session["addcc"]:
                 repo.git.add(str(filename), u=True)
             else:
@@ -229,8 +230,9 @@ def gtcheckinit():
     session["folder"] = folder
     session["skip"] = 0
     session['difflist'] = []
-    session['addcc'] = data['addcc']
-    session['ignorecc'] = data['ignorecc']
+    session['addcc'] = True if 'addCC' in data.keys() else False
+    session['skipcc'] = True if 'skipCC' in data.keys() else False
+    session['regexnum'] = data['regexnum']
     # untracked files to potential add
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     if data["branches"] != repo.active_branch:
