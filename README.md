@@ -39,12 +39,12 @@ cd GTCheck
     $ gtcheck path/to/repo
 
 ### Setup Page
-In the first page you can set up your git credentials and select the branch or create a new branch for commiting the modfications.
+In the first page you can set up your git credentials and select the branch or create a new branch for committing the modfications.
 
 ### GTCheck Page
 In this page you can see and edit the modifications and the original text. 
 
-The modifications can be committed (with the commit message), skipped (if not clear what to do), added to the stage mode and later can be commited all at once or can be stashed (keep the original version).
+The modifications can be committed (with the commit message), skipped (if not clear what to do), added to the stage mode and later can be committed all at once or can be stashed (keep the original version).
 
 ### FAQ
 
