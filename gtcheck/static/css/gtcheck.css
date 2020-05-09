@@ -36,7 +36,10 @@ textarea {
 
 .surr-image {
        opacity: 0.5;
+}
 
+.textline {
+    min-height: 96px;
 }
 
 .btn {

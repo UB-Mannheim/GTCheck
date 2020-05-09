@@ -37,8 +37,8 @@ window.addEventListener("keyup", function(event) {
 	</div>
 	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
-		<div><img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
-		<div><img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/></div>
+		<div class="textline"><img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		<div class="textline"><img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/></div>
 		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
 			<div class="mod-text"><textarea name="modtext" contenteditable="true">{{ modtext }}</textarea></div>
 			<div style="float: right" id="group1i" class="col s3">
@@ -51,7 +51,7 @@ window.addEventListener("keyup", function(event) {
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
 		</form>
 
-		<img class = "surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/>
+		<div class="textline"><img class = "surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
 	</div>
 	<div class="row" style="float:right">
             <div class="col s2">
