@@ -5,9 +5,9 @@ body {
 /*	background-image: ; */
 
 img {
-    width: 90%; /* you can use % */
     height: auto;
     max-height:300px;
+    max-width: 90%; /* you can use % */
 }
 
 h2 {
@@ -36,7 +36,10 @@ textarea {
 
 .surr-image {
        opacity: 0.5;
+}
 
+.textline {
+    min-height: 96px;
 }
 
 .btn {
