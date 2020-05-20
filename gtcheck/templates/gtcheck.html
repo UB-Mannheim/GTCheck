@@ -105,6 +105,7 @@
 
 		var layouts = [
 			// 'title , file name , layout name'
+			"Combining Diacritical Marks, cdm, combining-diacritical-marks",
 			"Albanian (qwerty), albanian, albanian-qwerty",
 			"Albanian (qwertz), albanian, albanian-qwertz",
 			"Arabic (azerty), arabic, arabic-azerty",
@@ -166,7 +167,7 @@
 
 		};
 
-		$.each(layouts.sort(), function(i, l){
+		$.each(layouts, function(i, l){
 			t = l.split(/\s*,\s*/);
 			o += '<option data-filename="' + t[1] + '" value="' + t[2] + '">' + t[0] + '</option>';
 		});

@@ -17,7 +17,58 @@
  *
  * license for this file: WTFPL, unless the source layout site has a problem with me using them as a reference
  */
-
+/* Combining Diacritical Marks */
+jQuery.keyboard.layouts['combining-diacritical-marks'] = {
+	'name' : 'Combining Diacritical Marks',
+	'lang' : ['cdm'],
+	'normal' : [
+	    "\u0300 \u0301 \u0302 \u0303 \u0304 \u0305 \u0306 \u0307 \u0308 \u0309 \u030A \u030B \u030C \u030D \u030E \u030F",
+		"\u0310 \u0311 \u0312 \u0313 \u0314 \u0315 \u0316 \u0317 \u0318 \u0319 \u031A \u031B \u031C \u031D \u031E \u031F {bksp}",
+		"{enter}  \u0320 \u0321 \u0322 \u0323 \u0324 \u0325 \u0326 \u0327 \u0328 \u0329 \u032A \u032B \u032C \u032D \u032E \u032F",
+		"{shift} \u0330 \u0331 \u0332 \u0333 \u0334 \u0335 \u0336 \u0337 \u0338 \u0339 \u033A \u033B \u033C \u033D \u033E \u033F  {shift}",
+		"{accept} {alt} {space} {alt} {cancel}"
+	],
+	'shift' : [
+	    "\u1AB0 \u1AB1 \u1AB2 \u1AB3 \u1AB4 \u1AB5 \u1AB6 \u1AB7 \u1AB8 \u1AB9 \u1ABA \u1ABB \u1ABC \u1ABD \u1ABE",
+		"\u0340 \u0341 \u0342 \u0343 \u0344 \u0345 \u0346 \u0347 \u0348 \u0349 \u034A \u034B \u034C \u034D \u034E \u034F {bksp}",
+		"{enter}  \u0350 \u0351 \u0352 \u0353 \u0354 \u0355 \u0356 \u0357 \u0358 \u0359 \u035A \u035B \u035C \u035D \u035E \u035F",
+		"{shift} \u0360 \u0361 \u0362 \u0363 \u0364 \u0365 \u0366 \u0367 \u0368 \u0369 \u036A \u036B \u036C \u036D \u036E \u036F  {shift}",
+		"{accept} {alt} {space} {alt} {cancel}"
+	],
+	'alt' : [
+	    "\u1DC0 \u1DC1 \u1DC2 \u1DC3 \u1DC4 \u1DC5 \u1DC6 \u1DC7 \u1DC8 \u1DC9 \u1DCA \u1DCB \u1DCC \u1DCD \u1ABE \u1ABF",
+		"\u1DD0 \u1DD1 \u1DD2 \u1DD3 \u1DD4 \u1DD5 \u1DD6 \u1DD7 \u1DD8 \u1DD9 \u1DDA \u1DDB \u1DDC \u1DDD \u1DDE \u034F {bksp}",
+		"{enter}  \u1DE0 \u1DE1 \u1DE2 \u1DE3 \u1DE4 \u1DE5 \u1DE6 \u1DE7 \u1DE8 \u1DE9 \u1DEA \u1DEB \u1DEC \u1DED \u1DEE \u035F",
+		"{shift} \u1DF0 \u1DF1 \u1DF2 \u1DF3 \u1DF4 \u1DF5 \u1DF6 \u1DF7 \u1DF8 \u1DF9 \u1DFA \u1DFB \u1DFC \u1DFD \u1DFE \u036F  {shift}",
+		"{accept} {alt} {space} {alt} {cancel}"
+	],
+};
+/* Combining Diacritical Marks */
+jQuery.keyboard.layouts['combining-diacritical-marks'] = {
+	'name' : 'Combining Diacritical Marks',
+	'lang' : ['cdm'],
+	'normal' : [
+	    "\u0300 \u0301 \u0302 \u0303 \u0304 \u0305 \u0306 \u0307 \u0308 \u0309 \u030A \u030B \u030C \u030D \u030E \u030F",
+		"\u0310 \u0311 \u0312 \u0313 \u0314 \u0315 \u0316 \u0317 \u0318 \u0319 \u031A \u031B \u031C \u031D \u031E \u031F {bksp}",
+		"{enter}  \u0320 \u0321 \u0322 \u0323 \u0324 \u0325 \u0326 \u0327 \u0328 \u0329 \u032A \u032B \u032C \u032D \u032E \u032F",
+		"{shift} \u0330 \u0331 \u0332 \u0333 \u0334 \u0335 \u0336 \u0337 \u0338 \u0339 \u033A \u033B \u033C \u033D \u033E \u033F  {shift}",
+		"{accept} {alt} {space} {alt} {cancel}"
+	],
+	'shift' : [
+	    "\u1AB0 \u1AB1 \u1AB2 \u1AB3 \u1AB4 \u1AB5 \u1AB6 \u1AB7 \u1AB8 \u1AB9 \u1ABA \u1ABB \u1ABC \u1ABD \u1ABE",
+		"\u0340 \u0341 \u0342 \u0343 \u0344 \u0345 \u0346 \u0347 \u0348 \u0349 \u034A \u034B \u034C \u034D \u034E \u034F {bksp}",
+		"{enter}  \u0350 \u0351 \u0352 \u0353 \u0354 \u0355 \u0356 \u0357 \u0358 \u0359 \u035A \u035B \u035C \u035D \u035E \u035F",
+		"{shift} \u0360 \u0361 \u0362 \u0363 \u0364 \u0365 \u0366 \u0367 \u0368 \u0369 \u036A \u036B \u036C \u036D \u036E \u036F  {shift}",
+		"{accept} {alt} {space} {alt} {cancel}"
+	],
+	'alt' : [
+	    "\u1DC0 \u1DC1 \u1DC2 \u1DC3 \u1DC4 \u1DC5 \u1DC6 \u1DC7 \u1DC8 \u1DC9 \u1DCA \u1DCB \u1DCC \u1DCD \u1ABE \u1ABF",
+		"\u1DD0 \u1DD1 \u1DD2 \u1DD3 \u1DD4 \u1DD5 \u1DD6 \u1DD7 \u1DD8 \u1DD9 \u1DDA \u1DDB \u1DDC \u1DDD \u1DDE \u034F {bksp}",
+		"{enter}  \u1DE0 \u1DE1 \u1DE2 \u1DE3 \u1DE4 \u1DE5 \u1DE6 \u1DE7 \u1DE8 \u1DE9 \u1DEA \u1DEB \u1DEC \u1DED \u1DEE \u035F",
+		"{shift} \u1DF0 \u1DF1 \u1DF2 \u1DF3 \u1DF4 \u1DF5 \u1DF6 \u1DF7 \u1DF8 \u1DF9 \u1DFA \u1DFB \u1DFC \u1DFD \u1DFE \u036F  {shift}",
+		"{accept} {alt} {space} {alt} {cancel}"
+	],
+};
 /* qwertz-albanian
  combined from http://en.wikipedia.org/wiki/File:Albanian_keyboard_layout.jpg,
  http://ascii-table.com/keyboard.php/448 & http://www.google.com/webelements/ */
