@@ -197,9 +197,11 @@
 $.isArray = function(a) {
   return Object.prototype.toString.call(a) === '[object Array]';
 }
+
 $.isFunction = function(f) {
   return typeof f === 'function';
 }
+
 $.isWindow = function(w) {
   var toString = Object.prototype.toString.call(w);
   return toString == '[object global]' ||
@@ -207,16 +209,6 @@ $.isWindow = function(w) {
     toString == '[object DOMWindow]';
 }
 
-$.keyboard.keyaction.undo = function (base) {
-	base.execCommand('undo');
-	return false;
-};
-$.keyboard.keyaction.redo = function (base) {
-	base.execCommand('redo');
-	return false;
-};
-
-/* VIRTUAL KEYBOARD DEMO - https://github.com/Mottie/Keyboard */
 $('#vkey-icon').click(function(){
     $('#keyboard').getkeyboard().reveal();
 });
@@ -233,20 +225,18 @@ $('#keyboard').keyboard({
 				'{tab} q w e r t y u i o p [ ] \\',
 				'a s d f g h j k l ; \' {enter}',
 				'{shift} z x c v b n m , . / {shift}',
-				'{accept} {space} {clear} {cancel} {undo:Undo} {redo:Redo}'
+				'{accept} {space} {clear} {cancel}'
 			],
 			'shift': [
 				'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
 				'{tab} Q W E R T Y U I O P { } |',
 				'A S D F G H J K L : " {enter}',
 				'{shift} Z X C V B N M < > ? {shift}',
-				'{accept} {space} {clear} {cancel} {undo:Undo} {redo:Redo}'
+				'{accept} {space} {clear} {cancel}'
 			]
 		},
 		display: {
 			del: '\u2326:Delete',
-			redo: '↻',
-			undo: '↺'
 		},
     visible: function(e, kb) {
     	kb.$keyboard.find('.ui-keyboard-clear').addClass('ui-state-active')
