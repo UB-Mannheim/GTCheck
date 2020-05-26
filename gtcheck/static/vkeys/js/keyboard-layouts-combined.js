@@ -17,58 +17,68 @@
  *
  * license for this file: WTFPL, unless the source layout site has a problem with me using them as a reference
  */
-/* Combining Diacritical Marks */
-jQuery.keyboard.layouts['combining-diacritical-marks'] = {
-	'name' : 'Combining Diacritical Marks',
-	'lang' : ['cdm'],
+/* Old Glyphs */
+jQuery.keyboard.layouts['old-glyphs'] = {
+	'name' : 'Old-Glyphs (GTCheck)',
+	'lang' : ['og'],
 	'normal' : [
-	    "\u0300 \u0301 \u0302 \u0303 \u0304 \u0305 \u0306 \u0307 \u0308 \u0309 \u030A \u030B \u030C \u030D \u030E \u030F",
-		"\u0310 \u0311 \u0312 \u0313 \u0314 \u0315 \u0316 \u0317 \u0318 \u0319 \u031A \u031B \u031C \u031D \u031E \u031F {bksp}",
-		"{enter}  \u0320 \u0321 \u0322 \u0323 \u0324 \u0325 \u0326 \u0327 \u0328 \u0329 \u032A \u032B \u032C \u032D \u032E \u032F",
-		"{shift} \u0330 \u0331 \u0332 \u0333 \u0334 \u0335 \u0336 \u0337 \u0338 \u0339 \u033A \u033B \u033C \u033D \u033E \u033F  {shift}",
+	    "\u2E17 \uFF02 \u0300 \u0301 \u0302 \u0303 \u0304 \u0305 \u0306 \u0307 \u0308 \u0309 \u030A \u030B \u030C \u030D \u030E \u030F",
+		"\u00E6 \u0153  {bksp}",
+		"{enter}  \uA75B \u017f \uFB05 \u0302 \uFB06 \uFB00 \uFB01 \uFB02 \uFB03 \uFB04",
+		"{shift} {shift}",
 		"{accept} {alt} {space} {alt} {cancel}"
 	],
 	'shift' : [
-	    "\u1AB0 \u1AB1 \u1AB2 \u1AB3 \u1AB4 \u1AB5 \u1AB6 \u1AB7 \u1AB8 \u1AB9 \u1ABA \u1ABB \u1ABC \u1ABD \u1ABE",
-		"\u0340 \u0341 \u0342 \u0343 \u0344 \u0345 \u0346 \u0347 \u0348 \u0349 \u034A \u034B \u034C \u034D \u034E \u034F {bksp}",
-		"{enter}  \u0350 \u0351 \u0352 \u0353 \u0354 \u0355 \u0356 \u0357 \u0358 \u0359 \u035A \u035B \u035C \u035D \u035E \u035F",
-		"{shift} \u0360 \u0361 \u0362 \u0363 \u0364 \u0365 \u0366 \u0367 \u0368 \u0369 \u036A \u036B \u036C \u036D \u036E \u036F  {shift}",
+	    "\u0363 \u0364 \u0365 \u0366 \u0367 \u0368 \u0369 \u036A \u036B \u036C \u036D \u036E \u036F",
+		"\u0340 \u0152 \u0342 \u0343 \u0344 \u0345 \u0346 \u0347 \u0348 \u0349 \u034A \u034B \u034C \u034D \u034E \u034F {bksp}",
+		"{enter} \uA75A \u0350 \u0053 ",
+		"{shift} {shift}",
 		"{accept} {alt} {space} {alt} {cancel}"
 	],
 	'alt' : [
 	    "\u1DC0 \u1DC1 \u1DC2 \u1DC3 \u1DC4 \u1DC5 \u1DC6 \u1DC7 \u1DC8 \u1DC9 \u1DCA \u1DCB \u1DCC \u1DCD \u1ABE \u1ABF",
 		"\u1DD0 \u1DD1 \u1DD2 \u1DD3 \u1DD4 \u1DD5 \u1DD6 \u1DD7 \u1DD8 \u1DD9 \u1DDA \u1DDB \u1DDC \u1DDD \u1DDE \u034F {bksp}",
-		"{enter}  \u1DE0 \u1DE1 \u1DE2 \u1DE3 \u1DE4 \u1DE5 \u1DE6 \u1DE7 \u1DE8 \u1DE9 \u1DEA \u1DEB \u1DEC \u1DED \u1DEE \u035F",
+		"{enter} \u1DE0 \u1DE1 \u1DE2 \u1DE3 \u1DE4 \u1DE5 \u1DE6 \u1DE7 \u1DE8 \u1DE9 \u1DEA \u1DEB \u1DEC \u1DED \u1DEE \u035F",
 		"{shift} \u1DF0 \u1DF1 \u1DF2 \u1DF3 \u1DF4 \u1DF5 \u1DF6 \u1DF7 \u1DF8 \u1DF9 \u1DFA \u1DFB \u1DFC \u1DFD \u1DFE \u036F  {shift}",
 		"{accept} {alt} {space} {alt} {cancel}"
 	],
 };
+
 /* Combining Diacritical Marks */
 jQuery.keyboard.layouts['combining-diacritical-marks'] = {
-	'name' : 'Combining Diacritical Marks',
+	'name' : 'Combining Diacritical Marks (GTCheck)',
 	'lang' : ['cdm'],
 	'normal' : [
-	    "\u0300 \u0301 \u0302 \u0303 \u0304 \u0305 \u0306 \u0307 \u0308 \u0309 \u030A \u030B \u030C \u030D \u030E \u030F",
-		"\u0310 \u0311 \u0312 \u0313 \u0314 \u0315 \u0316 \u0317 \u0318 \u0319 \u031A \u031B \u031C \u031D \u031E \u031F {bksp}",
-		"{enter}  \u0320 \u0321 \u0322 \u0323 \u0324 \u0325 \u0326 \u0327 \u0328 \u0329 \u032A \u032B \u032C \u032D \u032E \u032F",
-		"{shift} \u0330 \u0331 \u0332 \u0333 \u0334 \u0335 \u0336 \u0337 \u0338 \u0339 \u033A \u033B \u033C \u033D \u033E \u033F  {shift}",
-		"{accept} {alt} {space} {alt} {cancel}"
+	    "\u0300:Combining_Grave_Accent \u0301:Combining_Acute_Accent \u0302:Combining_Circumflex_Accent \u0303:Combining_Tilde \u0304:Combining_Macron \u0305:Combining_Overline \u0306:Combining_Breve \u0307:Combining_Dot_Above \u0308:Combining_Diaeresis \u0309:Combining_Hook_Above \u030A:Combining_Ring_Above \u030B:Combining_Double_Acute_Accent \u030C:Combining_Caron \u030D:Combining_Vertical_Line_Above \u030E:Combining_Double_Vertical_Line_Above \u030F:Combining_Double_Grave_Accent",
+		"\u0310:Combining_Candrabindu \u0311:Combining_Inverted_Breve \u0312:Combining_Turned_Comma_Above \u0313:Combining_Comma_Above \u0314:Combining_Reversed_Comma_Above \u0315:Combining_Comma_Above_Right \u0316:Combining_Grave_Accent_Below \u0317:Combining_Acute_Accent_Below \u0318:Combining_Left_Tack_Below \u0319:Combining_Right_Tack_Below \u031A:Combining_Left_Angle_Above \u031B:Combining_Horn \u031C:Combining_Left_Half_Ring_Below \u031D:Combining_Up_Tack_Below \u031E:Combining_Down_Tack_Below \u031F:Combining_Plus_Sign_Below",
+		"\u0320:Combining_Minus_Sign_Below \u0321:Combining_Palatalized_Hook_Below \u0322:Combining_Retroflex_Hook_Below \u0323:Combining_Dot_Below \u0324:Combining_Diaeresis_Below \u0325:Combining_Ring_Below \u0326:Combining_Comma_Below \u0327:Combining_Cedilla \u0328:Combining_Ogonek \u0329:Combining_Vertical_Line_Below \u032A:Combining_Bridge_Below \u032B:Combining_Inverted_Double_Arch_Below \u032C:Combining_Caron_Below \u032D:Combining_Circumflex_Accent_Below \u032E:Combining_Breve_Below \u032F:Combining_Inverted_Breve_Below",
+		"\u0330:Combining_Tilde_Below \u0331:Combining_Macron_Below \u0332:Combining_Low_Line \u0333:Combining_Double_Low_Line \u0334:Combining_Tilde_Overlay \u0335:Combining_Short_Stroke_Overlay \u0336:Combining_Long_Stroke_Overlay \u0337:Combining_Short_Solidus_Overlay \u0338:Combining_Long_Solidus_Overlay \u0339:Combining_Right_Half_Ring_Below \u033A:Combining_Inverted_Bridge_Below \u033B:Combining_Square_Below \u033C:Combining_Seagull_Below \u033D:Combining_X_Above \u033E:Combining_Vertical_Tilde \u033F:Combining_Double_Overline",
+		"{accept} {shift} {alt} {space} {enter} {bksp} {cancel}"
 	],
 	'shift' : [
-	    "\u1AB0 \u1AB1 \u1AB2 \u1AB3 \u1AB4 \u1AB5 \u1AB6 \u1AB7 \u1AB8 \u1AB9 \u1ABA \u1ABB \u1ABC \u1ABD \u1ABE",
-		"\u0340 \u0341 \u0342 \u0343 \u0344 \u0345 \u0346 \u0347 \u0348 \u0349 \u034A \u034B \u034C \u034D \u034E \u034F {bksp}",
-		"{enter}  \u0350 \u0351 \u0352 \u0353 \u0354 \u0355 \u0356 \u0357 \u0358 \u0359 \u035A \u035B \u035C \u035D \u035E \u035F",
-		"{shift} \u0360 \u0361 \u0362 \u0363 \u0364 \u0365 \u0366 \u0367 \u0368 \u0369 \u036A \u036B \u036C \u036D \u036E \u036F  {shift}",
-		"{accept} {alt} {space} {alt} {cancel}"
+	    "\u1AB0:Combining_Doubled_Circumflex_Accent \u1AB1:Combining_Diaeresis-Ring \u1AB2:Combining_Infinity \u1AB3:Combining_Downwards_Arrow \u1AB4:Combining_Triple_Dot \u1AB5:Combining_X-X_Below \u1AB6:Combining_Wiggly_Line_Below \u1AB7:Combining_Open_Mark_Below \u1AB8:Combining_Double_Open_Mark_Below \u1AB9:Combining_Light_Centralization_Stroke_Below \u1ABA:Combining_Strong_Centralization_Stroke_Below \u1ABB:Combining_Parentheses_Above \u1ABC:Combining_Double_Parentheses_Above \u1ABD:Combining_Parentheses_Below \u1ABE:Combining_Parentheses_Overlay",
+		"\u0340:Combininug_Grave_Tone_Mark \u0341:Combining_Acute_Tone_Mark \u0342:Combining_Greek_Perispomeni \u0343:Combining_Greek_Koronis \u0344:Combining_Greek_Dialytika_Tonos \u0345:Combining_Greek_Ypogegrammeni \u0346:Combining_Bridge_Above \u0347:Combining_Equals_Sign_Below \u0348:Combining_Double_Vertical_Line_Below \u0349:Combining_Left_Angle_Below \u034A:Combining_Not_Tilde_Above \u034B:Combining_Homothetic_Above \u034C:Combining_Almost_Equal_to_Above \u034D:Combining_Left_Right_Arrow_Below \u034E:Combining_Upwards_Arrow_Below \u034F:Combining_Grapheme_Joiner_(CGJ)",
+		"\u0350:Combining_Right_Arrowhead_Above \u0351:Combining_Left_Half_Ring_Above \u0352:Combining_Fermata \u0353:Combining_X_Below \u0354:Combining_Left_Arrowhead_Below \u0355:Combining_Right_Arrowhead_Below \u0356:Combining_Right_Arrowhead_and_Up_Arrowhead_Below \u0357:Combining_Right_Half_Ring_Above \u0358:Combining_Dot_Above_Right \u0359:Combining_Asterisk_Below \u035A:Combining_Double_Ring_Below \u035B:Combining_Zigzag_Above \u035C:Combining_Double_Breve_Below \u035D:Combining_Double_Breve \u035E:Combining_Double_Macron \u035F:Combining_Double_Macron_Below",
+		"\u0360:Combining_Double_Tilde \u0361:Combining_Double_Inverted_Breve \u0362:Combining_Double_Rightwards_Arrow_Below \u0363:Combining_Latin_Small_Letter_A\u0364:Combining_Latin_Small_Letter_E \u0365:Combining_Latin_Small_Letter_I \u0366:Combining_Latin_Small_Letter_O \u0367:Combining_Latin_Small_Letter_U \u0368:Combining_Latin_Small_Letter_C \u0369:Combining_Latin_Small_Letter_D \u036A:Combining_Latin_Small_Letter_H \u036B:Combining_Latin_Small_Letter_M \u036C:Combining_Latin_Small_Letter_R \u036D:Combining_Latin_Small_Letter_T \u036E:Combining_Latin_Small_Letter_V \u036F:Combining_Latin_Small_Letter_X",
+		"{accept} {s} {space} {enter} {bksp} {cancel}"
 	],
 	'alt' : [
-	    "\u1DC0 \u1DC1 \u1DC2 \u1DC3 \u1DC4 \u1DC5 \u1DC6 \u1DC7 \u1DC8 \u1DC9 \u1DCA \u1DCB \u1DCC \u1DCD \u1ABE \u1ABF",
-		"\u1DD0 \u1DD1 \u1DD2 \u1DD3 \u1DD4 \u1DD5 \u1DD6 \u1DD7 \u1DD8 \u1DD9 \u1DDA \u1DDB \u1DDC \u1DDD \u1DDE \u034F {bksp}",
-		"{enter}  \u1DE0 \u1DE1 \u1DE2 \u1DE3 \u1DE4 \u1DE5 \u1DE6 \u1DE7 \u1DE8 \u1DE9 \u1DEA \u1DEB \u1DEC \u1DED \u1DEE \u035F",
-		"{shift} \u1DF0 \u1DF1 \u1DF2 \u1DF3 \u1DF4 \u1DF5 \u1DF6 \u1DF7 \u1DF8 \u1DF9 \u1DFA \u1DFB \u1DFC \u1DFD \u1DFE \u036F  {shift}",
-		"{accept} {alt} {space} {alt} {cancel}"
+	    "\u1DC0:Combining_Dotted_Grave_Accent \u1DC1:Combining_Dotted_Acute_Accent \u1DC2:Combining_Snake_Below \u1DC3:Combining_Suspension_Mark \u1DC4:Combining_Macron-Acute \u1DC5:Combining_Grave-Macron \u1DC6:Combining_Macron-Grave \u1DC7:Combining_Acute-Macron \u1DC8:Combining_Grave-Acute-Grave \u1DC9:Combining_Acute-Grave-Acute \u1DCA:Combining_Latin_Small_Letter_R_Below \u1DCB:Combining_Breve-Macron \u1DCC:Combining_Macron-Breve \u1DCD:Combining_Double_Circumflex_Above \u1DCE:Combining_Ogonek_Above \u1DCF:Combining_Zigzag_Below",
+		"\u1DD0:Combining_Is_Below \u1DD1:Combining_Ur_Above \u1DD2:Combining_Us_Above \u1DD3:Combining_Latin_Small_Letter_Flattened_Open_A_Above \u1DD4:Combining_Latin_Small_Letter_Ae \u1DD5:Combining_Latin_Small_Letter_Ao \u1DD6:Combining_Latin_Small_Letter_Av \u1DD7:Combining_Latin_Small_Letter_C_Cedilla \u1DD8:Combining_Latin_Small_Letter_Insular_D \u1DD9:Combining_Latin_Small_Letter_Eth \u1DDA:Combining_Latin_Small_Letter_G \u1DDB:Combining_Latin_Letter_Small_Capital_G \u1DDC:Combining_Latin_Small_Letter_K \u1DDD:Combining_Latin_Small_Letter_L \u1DDE:Combining_Latin_Letter_Small_Capital_L \u034F:Combining_Latin_Letter_Small_Capital_M",
+		"\u1DE0:Combining_Latin_Small_Letter_N \u1DE1:Combining_Latin_Letter_Small_Capital_N \u1DE2:Combining_Latin_Letter_Small_Capital_R \u1DE3:Combining_Latin_Small_Letter_R_Rotunda \u1DE4:Combining_Latin_Small_Letter_S \u1DE5:Combining_Latin_Small_Letter_Long_S \u1DE6:Combining_Latin_Small_Letter_Z \u1DE7:Combining_Latin_Small_Letter_Alpha \u1DE8:Combining_Latin_Small_Letter_B \u1DE9:Combining_Latin_Small_Letter_Beta \u1DEA:Combining_Latin_Small_Letter_Schwa \u1DEB:Combining_Latin_Small_Letter_F \u1DEC:Combining_Latin_Small_Letter_L_with_Double_Middle_Tilde \u1DED:Combining_Latin_Small_Letter_O_with_Light_Centralization_Stroke \u1DEE:Combining_Latin_Small_Letter_P \u035F:Combining_Latin_Small_Letter_Esh",
+		"\u1DF0:Combining_Latin_Small_Letter_U_with_Light_Centralization_Stroke \u1DF1:Combining_Latin_Small_Letter_W \u1DF2:Combining_Latin_Small_Letter_A_with_Diaeresis \u1DF3:Combining_Latin_Small_Letter_O_with_Diaeresis \u1DF4:Combining_Latin_Small_Letter_U_with_Diaeresis \u1DF5:Combining_Up_Tack_Above \u1DF6:Combining_Kavyka_Above_Right \u1DF7:Combining_Kavyka_Above_Left \u1DF8:Combining_Dot_Above_Left \u1DF9:Combining_Wide_Inverted_Bridge_Below \u1DFB:Combining_Deletion_Mark \u1DFC:Combining_Double_Inverted_Breve_Below \u1DFD:Combining_Almost_Equal_to_Below \u1DFE:Combining_Left_Arrowhead_Above \u1DFF:Combining_Right_Arrowhead_and_Down_Arrowhead_Below",
+		"{accept} {a} {space} {enter} {bksp} {cancel}"
 	],
 };
+jQuery.keyboard.language.cdm = {
+	language: 'Combining Diacritical Marks',
+	display : {
+		'shift'      : 'Set 2:U1AB0-U1ABF, U0340-U0360',
+		'alt'        : 'Set 3:U1DC0-U1DFF',
+		's'          : 'Set 1:U0300-U0330',
+		'a'          : 'Set 1:U0300-U0330',
+	}};
+
 /* qwertz-albanian
  combined from http://en.wikipedia.org/wiki/File:Albanian_keyboard_layout.jpg,
  http://ascii-table.com/keyboard.php/448 & http://www.google.com/webelements/ */
@@ -2754,7 +2764,7 @@ jQuery.keyboard.language.pt = {
 jQuery.keyboard.language.ro = {
 	language: 'Rom\u00e2n\u0103 (Romanian)',
 	display : {
-		'a'      : '\u2714:Accept (Shift+Enter)', // check mark - same action as accept
+		'a'      : '\u2714:Accept (Shift+Enter)',// check mark - same action as accept
 		'accept' : 'Accept:Accept (Shift+Enter)',
 		'alt'    : 'AltGr:Alternate Graphemes',
 		'b'      : '\u2190:Backspace',    // Left arrow (same as &larr;)
