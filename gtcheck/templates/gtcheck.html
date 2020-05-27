@@ -49,6 +49,11 @@
 	<div style="margin-left: 15px; margin-right: 15px;">
 		<h2 class="heading center">GT Check</h2>
 	</div>
+	<div class="fixed-action-btn" style="height: 97%;right:-12%"  id="group1" >
+			<div id="switcher"></div>
+		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
+				<select class="browser-default form-control" style="width:40%;font-size:0.75rem" id="lang"></select>
+	</div>
 	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
 		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
@@ -91,11 +96,6 @@
 				<label style="font-size:0.5rem" for="skipped">Files skipped</label>
                 <input type="text"  id="skipped" name="skipped" value="{{ skipped }}" readonly>
             </div>
-	</div>
-	<div class="fixed-action-btn" style="height: 97%;right:-12%"  id="group1" >
-			<div id="switcher"></div>
-		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
-				<select class="browser-default form-control" style="width:40%;font-size:0.75rem" id="lang"></select>
 	</div>
 	<script>
 
