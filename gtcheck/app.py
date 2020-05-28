@@ -6,7 +6,6 @@ import re
 import sys
 import time
 import webbrowser
-from functools import lru_cache
 from logging import Formatter, FileHandler
 from pathlib import Path
 
@@ -58,8 +57,6 @@ def surrounding_images(img, folder):
         post_img = ""
     return prev_img, post_img
 
-
-#@lru_cache(maxsize=None)
 def get_repo(path):
     return Repo(path, search_parent_directories=True)
 
@@ -166,7 +163,8 @@ def gtcheck():
                                    email=email, commitmsg=commitmsg,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
                                    files_left=str(session['difflen']-session['skip']),
-                                   iname="No image", fname=str(fname.name), skipped=session['skip'])
+                                   iname="No image", fname=str(fname.name), skipped=session['skip'],
+                                   vkeylang=session['vkeylang'])
         else:
             img_out = Path("./symlink/").joinpath(img.relative_to(folder.parent))
             prev_img, post_img = surrounding_images(img, folder)
@@ -175,7 +173,8 @@ def gtcheck():
                                    postimage=post_img,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
                                    files_left=str(session['difflen']-session['skip']),
-                                   iname=str(img.name), fname=str(fname.name), skipped=session['skip'])
+                                   iname=str(img.name), fname=str(fname.name), skipped=session['skip'],
+                                   vkeylang=session['vkeylang'])
     else:
         if diffhead:
             commitmsg = f"[GT Checked] Staged Files: {diffhead}"
@@ -198,6 +197,7 @@ def gtcheckedit():
     fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form  # .to_dict(flat=False)
     modtext = data['modtext'].replace("\r\n","\n")
+    session['vkeylang'] = data['vkeylang']
     if data['selection'] == 'commit':
         if session['difflen']-session['skip'] != 0:
             if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
@@ -237,6 +237,7 @@ def gtcheckinit():
     session['addcc'] = True if 'addCC' in data.keys() else False
     session['skipcc'] = True if 'skipCC' in data.keys() else False
     session['regexnum'] = data['regexnum']
+    session['vkeylang'] = ""
     # untracked files to potential add
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     if data["branches"] != repo.active_branch:
