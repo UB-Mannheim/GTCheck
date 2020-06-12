@@ -6,10 +6,10 @@ GTCheck
 ## Overview
 **Check changes in your OCR Ground Truth**
 
-If the Ground Truth data is version controlled by an git repository, than you can use 
+If the Ground Truth data is version controlled via git repository, you can use 
 "GTCheck" to validate and commit your modification. 
 Therefore GTCheck will display for any line the original text, the modified version as well as the
-corresponding image.
+corresponding image. A virtual keyboard supports character replacements and the transcription of missing text.
 
 ## Installation
 
@@ -38,14 +38,19 @@ cd GTCheck
 
     $ gtcheck path/to/repo
 
-### Setup Page
+### Setup page
 In the first page you can set up your git credentials and select the branch or create a new branch for committing the modfications.
+![Setup page](docs/images/setuppage.png?raw=true "Setup page")
 
-### GTCheck Page
+### GTCheck page
 In this page you can see and edit the modifications and the original text. 
 
 The modifications can be committed (with the commit message), skipped (if not clear what to do), added to the stage mode and later can be committed all at once or can be stashed (keep the original version).
+![Edit page](docs/images/gtedit.png?raw=true "Edit page")
 
+A virtual keyboard supports character replacements and the transcription of missing text
+![Vkeys](docs/images/vkeys.png?raw=true "Virtual keyboard")
+ 
 ### FAQ
 
 UTF-8 Foldername:
