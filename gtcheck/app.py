@@ -245,7 +245,7 @@ def gtcheckinit():
         # repo.git.checkout(data["branches"])
     if data.get("checkout", "off") == "on" and data["new_branch"] != "":
         assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
-        repo.git.checkout(data["checkout"], b=data["new_branch"])
+        repo.git.checkout(data["branches"], b=data["new_branch"])
         # Check requirements
     assert not repo.bare, "Git repo is bare"  # check if repo is bare
     assert repo.is_dirty(), "No modified gt-files in the repository"  # check the dirty state
