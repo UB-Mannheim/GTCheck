@@ -198,6 +198,12 @@ def gtcheckedit():
     data = request.form  # .to_dict(flat=False)
     modtext = data['modtext'].replace("\r\n","\n")
     session['vkeylang'] = data['vkeylang']
+    if data.get('undo', None):
+        repo.git.reset('HEAD', session['undo_fpath'])
+        with open(session['undo_fpath'],"w") as fout:
+            fout.write(session['undo_value'])
+    session['undo_fpath'] = fname
+    session['undo_value'] = session['modtext']
     if data['selection'] == 'commit':
         if session['difflen']-session['skip'] != 0:
             if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
@@ -238,6 +244,8 @@ def gtcheckinit():
     session['skipcc'] = True if 'skipCC' in data.keys() else False
     session['regexnum'] = data['regexnum']
     session['vkeylang'] = ""
+    session['undo_fpath'] = ""
+    session['undo_value'] = ""
     # untracked files to potential add
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     if data["branches"] != repo.active_branch:
@@ -296,8 +304,6 @@ if not app.debug:
         Formatter('%(asctime)s %(levelname)s: \
             %(message)s [in %(pathname)s:%(lineno)d]')
     )
-    #hey = logging
-    #app.logger.setLevel(logging.INFO)
     file_handler.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
 
