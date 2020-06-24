@@ -48,7 +48,7 @@
         <input type="text" id="repo" value="{{ repo }}" name="repo" readonly>
     </div>
     <div>
-        <label for="branches">Selected branch</label>
+        <label for="branches">Selected branch (keeps only untracked files, modified files get lost)</label>
         <select name="branches" id="branches">
             {% for branch in branches %}
             <option value="{{ branch.name }}" {% if branch.name== active_branch.name %} selected="selected" {% endif %}>
@@ -69,6 +69,18 @@
             </label>
         </div>
         <input id="new_branch" type="text" class="validate" name="new_branch" value="">
+    </div>
+        <div>
+        <!-- Switch -->
+        <label for="reset">Reset staged files</label>
+        <div class="switch" id="reset">
+            <label>
+                Off
+                <input type="checkbox" name="reset">
+                <span class="lever"></span>
+                On
+            </label>
+        </div>
     </div>
         <h4>Settings</h4><br>
         <label for="skipCC">Skip files with only ControlCharacter differences</label>
