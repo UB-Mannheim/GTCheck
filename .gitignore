@@ -10,7 +10,7 @@ __pycache__/
 .idea
 
 # Symlink
-./gtcheck/static/symlink
+gtcheck/static/symlink/
 
 # Venv
 .gtcheck
