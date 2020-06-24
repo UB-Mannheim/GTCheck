@@ -2,16 +2,22 @@
 <html>
 <head>
 	<title>GT Check</title>
-		<!--CSS files-->
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"/>
+	<!--CSS files-->
+	<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/materialize.min.css') }}" media="screen,projection"/>
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/gtcheck.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='vkeys/css/keyboard-dark.min.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/materialize+icons.css') }}"/>
 
 	<!--Javascript files-->
-	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/materialize.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/jquery.keyboard.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/jquery.keyboard.extension-typing.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/keyboard-layouts-combined.js') }}" charset="utf-8"></script>
 	<script>
-window.addEventListener("keyup", function(event) {
+	window.addEventListener("keyup", function(event) {
 		if (event.keyCode === 113) {
 			event.preventDefault();
 		    document.getElementById("commit!").click();
@@ -30,28 +36,137 @@ window.addEventListener("keyup", function(event) {
 		  }
 		});
 	</script>
+	<script>
+  		$(document).ready(function(){
+    		$('select').formSelect();
+ 	 	});
+	</script>
+	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/previewkeyset.js') }}"></script>
+	<script>
+		var layouts = [
+			// 'title , file name , layout name'
+			"Combining Diacritical Marks (GTCheck), cdm, combining-diacritical-marks",
+			"Fractions & Enclosed Number (GTCheck), fen, fractions-enclosed-numbers",
+			"Spacing & General Punctation (GTCheck), sgp, spacing-&-general-punctation",
+			"Phonetics & IPA (GTCheck), pip, phonetics-&-ipa",
+			"Runics & Gothics (GTCheck), rug, runics-&-gothics",
+			"Latin Sup & Ext A (GTCheck), sea, latin-sup-&-ext-a",
+			"Latin Extended B (GTCheck), leb, latin-ext-b",
+			"Old Glyphs (GTCheck), og, old-glyphs",
+			"Albanian (qwerty), albanian, albanian-qwerty",
+			"Albanian (qwertz), albanian, albanian-qwertz",
+			"Arabic (azerty), arabic, arabic-azerty",
+			"Arabic (qwerty-1), arabic, arabic-qwerty-1",
+			"Arabic (qwerty-2), arabic, arabic-qwerty-2",
+			"Arabic (qwerty-3), arabic, arabic-qwerty-3",
+			"Arabic (qwerty-4), arabic, arabic-qwerty-4",
+			"Belarusian (Belarus), belarusian, belarusian-qwerty",
+			"Bengali (qwerty-1), bengali, bengali-qwerty-1",
+			"Bengali (qwerty-2), bengali, bengali-qwerty-2",
+			"Bulgarian (qwerty), bulgarian, bulgarian-qwerty",
+			"Catalan (qwerty), catalan, catalan-qwerty",
+			"Chinese, chinese, chinese",
+			"Danish (qwerty), danish, danish-qwerty", // mmm danish
+			"Ethiopic, ethiopic, ethiopic",
+			"French (azerty-1), french, french-azerty-1",
+			"French (azerty-2), french, french-azerty-2",
+			"French (bepo v1.0rc2), french, french-bepo-V1.0rc2",
+			"German (qwertz-1), german, german-qwertz-1",
+			"German (qwertz-2), german, german-qwertz-2",
+			"Hebrew (qwerty), hebrew, hebrew-qwerty",
+			"Hindi, hindi, hindi",
+			"Magyar (qwertz-1) utf8, hungarian, hungarian-qwertz-1",
+			"Magyar (qwertz-2) utf8, hungarian, hungarian-qwertz-2",
+			"Magyar (qwertz-1) ansi, hungariansi, hungarianansi-qwertz-1",
+			"Magyar (qwertz-2) ansi, hungariansi, hungarianansi-qwertz-2",
+			"Japanese (kana), japanese, japanese-kana",
+			"Japanese (qwerty), japanese, japanese-qwerty",
+			"Latvian (qwerty), latvian, latvian-qwerty",
+			"Mongolian, mongolian, mongolian",
+			"Persian (Farsi), persian, Persian",
+			"Polish (qwerty), polish, polish-qwerty",
+			"Portuguese (qwerty), portuguese, portuguese-qwerty",
+			"Romanian (qwerty), romanian, romanian",
+			"Russian (qwerty), russian, russian-qwerty",
+			"Russian (mac), russian, russian-mac",
+			"Serbian Cyrillic (sr-Cyrl), serbian, sr-Cyrl",
+			"Serbian Latin (sr), serbian, sr",
+			"Serbian Cyrillic Keyboard Layout (српски) for Mac, serbian, sr-Cyrl-mac",
+			"Serbian Latin Keyboard Layout (Srpski) for Mac, serbian, sr-mac",
+			"Spanish (qwerty), spanish, spanish-qwerty",
+			"Spanish (qwerty) special, spanish, spanish-qwerty-sp",
+			"Swedish (qwerty), swedish, swedish-qwerty",
+			"Swedish (dvorak), swedish, swedish-dvorak",
+			"Tamil (qwerty), tamil, tamil-tamil99-mod",
+			"Thai (qwerty), thai, thai-qwerty",
+			"Turkish (q), turkish, turkish-q",
+			"Turkish (f), turkish, turkish-f",
+			"Vietnamese (qwerty), vietnamese, vietnamese-qwerty"
+		],
+
+		t, o = '',
+
+		// Change display language, if the definitions are available
+		showKb = function(layout){
+			var kb = $('#keyboard').getkeyboard();
+			kb.options.layout = layout;
+			// redraw keyboard with new layout
+		};
+
+		$.each(layouts, function(i, l){
+			t = l.split(/\s*,\s*/);
+			if (t[2]=="{{ vkeylang }}") {
+				o += '<option data-filename="' + t[1] + '" value="' + t[2] + '" selected>' + t[0] + '</option>';
+			} else {
+				o += '<option data-filename="' + t[1] + '" value="' + t[2] + '">' + t[0] + '</option>';
+			}
+		});
+
+		// allow theme selector to set up, otherwise it pushes the page down after the
+		// keyboard has opened and covers up the <h2> layout title
+		setTimeout(function(){
+			$('#lang')
+			.html(o)
+			.change(function(){
+				var kb = $('#keyboard'),
+					$this = $(this),
+					$opt = $this.find('option:selected'),
+					layout = $this.val();
+				showKb( layout );
+				kb.blur();
+			}).trigger('change');
+
+		}, 100);
+	</script>
 </head>
 <body>
 	<div style="margin-left: 15px; margin-right: 15px;">
 		<h2 class="heading center">GT Check</h2>
 	</div>
+	<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
+		<div class="fixed-action-btn" style="height: 97%;right:-12%"  id="group1" >
+		<div id="switcher"></div>
+		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
+		<select class="browser-default form-control" name="vkeylang" style="width:40%;font-size:0.75rem" id="lang"></select>
+		</div>
 	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
-		<div class="textline"><img class = "surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
 		<div class="textline"><img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/></div>
-		<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
-			<div class="mod-text"><textarea name="modtext" contenteditable="true">{{ modtext }}</textarea></div>
-			<div style="float: right" id="group1i" class="col s3">
+			<div class="mod-text"><textarea id="keyboard" name="modtext" contenteditable="true">{{ modtext }}</textarea>
+				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-50%;float:right" type="toggle" name="action">
+				<i class="material-icons" id="vkey-icon">keyboard</i></a>
+			</div>
+			<div class="fixed-action-btn"  id="group1i" >
 				<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
 				<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
 				<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
-				<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a></div>
-		<div class="diff-text" style="clear: both" >{{ difftext }}</div>
+				<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a>
+			</div>
+			<div class="diff-text" style="clear: both" >{{ difftext }}</div>
 		<div class="orig-text">{{ origtext }}</div>
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
-		</form>
-
-		<div class="textline"><img class = "surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
 	</div>
 	<div class="row" style="float:right">
             <div class="col s2">
@@ -75,5 +190,63 @@ window.addEventListener("keyup", function(event) {
                 <input type="text"  id="skipped" name="skipped" value="{{ skipped }}" readonly>
             </div>
 	</div>
+	</form>
+	<script>
+		/* Code to get jQuery UI to work with jQuery 3.4+ ... */
+		$.isArray = function(a) {
+		  return Object.prototype.toString.call(a) === '[object Array]';
+		}
+
+		$.isFunction = function(f) {
+		  return typeof f === 'function';
+		}
+
+		$.isWindow = function(w) {
+		  var toString = Object.prototype.toString.call(w);
+		  return toString == '[object global]' ||
+			toString == '[object Window]' ||
+			toString == '[object DOMWindow]';
+		}
+
+		$('#vkey-icon').click(function(){
+			$('#keyboard').getkeyboard().reveal();
+		});
+
+		$('#keyboard').keyboard({
+			  openOn: '',
+			  usePreview: false, // disabled for contenteditable
+			  useCombos: false,
+			  autoAccept: true,
+			  layout: 'custom',
+			  customLayout: {
+					'normal': [
+						'` F 2 3 4 5 6 7 8 9 0 - = {bksp}',
+						'{tab} q w e r t y u i o p [ ] \\',
+						'a s d f g h j k l ; \' {enter}',
+						'{shift} z x c v b n m , . / {shift}',
+						'{accept} {space} {clear} {cancel}'
+					],
+					'shift': [
+						'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
+						'{tab} Q W E R T Y U I O P { } |',
+						'A S D F G H J K L : " {enter}',
+						'{shift} Z X C V B N M < > ? {shift}',
+						'{accept} {space} {clear} {cancel}'
+					]
+				},
+				display: {
+					del: '\u2326:Delete',
+				},
+			visible: function(e, kb) {
+				kb.$keyboard.find('.ui-keyboard-clear').addClass('ui-state-active')
+			}
+
+			})
+			// activate the typing extension
+			.addTyping({
+			  showTyping: true,
+			  delay: 250
+		});
+	</script>
 </body>
 </html>
