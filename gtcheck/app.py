@@ -8,6 +8,7 @@ import time
 import webbrowser
 from logging import Formatter, FileHandler
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
 
 from flask import Flask, render_template, request, Markup, session, flash
 from git import Repo
@@ -50,10 +51,12 @@ def surrounding_images(img, folder):
     if prev_img.exists():
         prev_img = Path("./symlink/").joinpath(prev_img.relative_to(folder.parent))
     else:
+        app.logger.info(f"File:{prev_img.name} Wasn't found!")
         prev_img = ""
     if post_img.exists():
         post_img = Path("./symlink/").joinpath(post_img.relative_to(folder.parent))
     else:
+        app.logger.info(f"File:{post_img.name} Wasn't found!")
         post_img = ""
     return prev_img, post_img
 
@@ -78,11 +81,11 @@ def get_difftext(origtext, item, folder, repo):
         try:
             difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
         except UnicodeDecodeError as ex:
-            print("Warning the diff text could not be decoded! ",ex)
+            app.logger.warning(f"File:{item.a_path} Warning the diff text could not be decoded! Error:{ex}")
             try:
                 difftext = get_gitdifftext(origtext, item.b_blob.data_stream.read().decode(), repo)
             except Exception as ex2:
-                print("Both files could not be compared!")
+                app.logger.warning(f"File:{item.a_path} Both files could not be compared! Error:{ex2}")
                 difftext = ""
     return difftext
 
@@ -257,6 +260,7 @@ def gtcheckinit():
     if data.get("checkout", "off") == "on" and data["new_branch"] != "":
         repo.git.checkout(data["branches"], b=data["new_branch"])
     elif data["branches"] != str(repo.active_branch):
+        app.logger.info(f"Branch was force checkout from {str(repo.active_branch)} to {data['branches']}")
         repo.git.reset()
         repo.git.checkout("-f", data["branches"])
     # untracked files to potential add
@@ -282,6 +286,8 @@ def index():
         folder = Path(".")
     repo = get_repo(folder)
     folder = Path(repo.git_dir).parent
+    # Create repository depending logger
+    logger(f"./logs/{folder.name}_{repo.active_branch}.log".replace(' ','_'))
     name = repo.config_reader().get_value("user", "name")
     clean_symlinks()
     if name == "":
@@ -296,23 +302,29 @@ def index():
 
 @app.errorhandler(500)
 def internal_error(error):
-    print(str(error))
-
+    app.logger.error(str(error))
 
 @app.errorhandler(404)
 def not_found_error(error):
-    print(str(error))
+    app.logger.error(str(error))
 
-
-if not app.debug:
-    file_handler = FileHandler('error.log')
+def logger(fname):
+    file_handler = RotatingFileHandler(fname, maxBytes=100000,
+                                  backupCount=1)
     file_handler.setFormatter(
         Formatter('%(asctime)s %(levelname)s: \
             %(message)s [in %(pathname)s:%(lineno)d]')
     )
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.WARNING)
+    app.logger.setLevel(logging.INFO)
+    if len(app.logger.handlers) > 1:
+        app.logger.removeHandler(app.logger.handlers[1])
     app.logger.addHandler(file_handler)
 
+
+# Init basic app-logger
+if not app.debug:
+    logger('./logs/app.log')
 
 def run():
     port = int(os.environ.get('PORT', 5000))

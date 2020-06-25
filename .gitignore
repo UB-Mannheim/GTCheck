@@ -12,6 +12,9 @@ __pycache__/
 # Symlink
 gtcheck/static/symlink/
 
+# Logs
+logs/
+
 # Venv
 .gtcheck
 
