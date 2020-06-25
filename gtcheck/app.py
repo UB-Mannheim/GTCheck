@@ -229,6 +229,7 @@ def gtcheck():
         if diffhead:
             commitmsg = f"[GT Checked] Staged Files: {diffhead}"
             modtext = f"Please commit the staged files! You skipped {session['skip']} files."
+            session['difflen'] = session['skip']
             return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext,
                                    files_left="0")
         if not session['difflist']:
@@ -254,9 +255,15 @@ def gtcheckedit():
     Process the user input from gtcheck html pages
     :return:
     """
-    repo = get_repo(session["folder"])
-    fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form  # .to_dict(flat=False)
+    repo = get_repo(session["folder"])
+    # Check if mod files left
+    if session['difflen'] - session['skip'] == 0:
+        if data['selection'] == 'commit':
+            repo.git.commit('-m', data["commitmsg"])
+        session['difflist'] = []
+        return gtcheck()
+    fname = Path(session["folder"]).joinpath(session['fpath'])
     # Update git config
     repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
     repo.config_writer().set_value('user', 'email', data.get('email','')).release()
@@ -269,7 +276,7 @@ def gtcheckedit():
     session['undo_fpath'] = str(fname)
     session['undo_value'] = session['modtext']
     if data['selection'] == 'commit':
-        if session['difflen']-session['skip'] != 0:
+        if data['difflen']-session['skip'] != 0:
             if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
                 with open(fname, "w") as fout:
                     fout.write(modtext)
