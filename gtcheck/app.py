@@ -196,6 +196,9 @@ def gtcheckedit():
     repo = get_repo(session["folder"])
     fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form  # .to_dict(flat=False)
+    # Update git config
+    repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
+    repo.config_writer().set_value('user', 'email', data.get('email','')).release()
     modtext = data['modtext'].replace("\r\n","\n")
     session['vkeylang'] = data['vkeylang']
     if data.get('undo', None):
@@ -236,6 +239,8 @@ def gtcheckinit():
     data = request.form  # .to_dict(flat=False)
     folder = data['repo']
     repo = get_repo(folder)
+    repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
+    repo.config_writer().set_value('user', 'email', data.get('email','')).release()
     session.clear()
     session["folder"] = folder
     session["skip"] = 0
@@ -312,7 +317,7 @@ if not app.debug:
 def run():
     port = int(os.environ.get('PORT', 5000))
     app.config['SECRET_KEY'] = str(int(time.time()))
-    webbrowser.open_new('http://127.0.0.1:5000/')
+    #webbrowser.open_new('http://127.0.0.1:5000/')
     app.run(host='127.0.0.1', port=port, debug=True)
 
 
