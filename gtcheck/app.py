@@ -6,7 +6,8 @@ import re
 import sys
 import time
 import webbrowser
-from logging import Formatter, FileHandler
+from logging import Formatter
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from flask import Flask, render_template, request, Markup, session, flash
@@ -18,6 +19,12 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def modifications(difftext):
+    """
+    Extract the original and the modified characters as tuples into a list.
+    This information is used e.g. for the commit-message.
+    :param difftext:
+    :return:
+    """
     mods = []
     last_pos = 1
     for mod in re.finditer(r'(\[-(.*?)-\]|{\+(.*?)\+})', difftext):
@@ -33,6 +40,11 @@ def modifications(difftext):
 
 
 def color_diffs(difftext):
+    """
+    Adds html-tags to colorize the modified parts.
+    :param difftext: Compared text, differences are marked with {+ ADD +} [- DEL -]
+    :return:
+    """
     return difftext.replace("{+", '<span style="color:green">') \
         .replace("+}", "</span>") \
         .replace("[-", '<span style="color:red">') \
@@ -40,7 +52,14 @@ def color_diffs(difftext):
 
 
 def surrounding_images(img, folder):
-    # Default  ^(.*?)(\d+)(\D*)$
+    """
+    Finding predecessor and successor images to gain more context for the user.
+    The basic regex to extract the pagenumber can be set on the setup page and
+    is kept in the session['regexnum'] variable (Default  ^(.*?)(\d+)(\D*)$).
+    :param img: Imagename
+    :param folder: Foldername
+    :return:
+    """
     imgmatch = re.match(rf"{session['regexnum']}", img.name)
     imgint = int(imgmatch[2])
     imgprefix = img.name[:imgmatch.regs[1][1]]
@@ -50,26 +69,51 @@ def surrounding_images(img, folder):
     if prev_img.exists():
         prev_img = Path("./symlink/").joinpath(prev_img.relative_to(folder.parent))
     else:
+        app.logger.info(f"File:{prev_img.name} Wasn't found!")
         prev_img = ""
     if post_img.exists():
         post_img = Path("./symlink/").joinpath(post_img.relative_to(folder.parent))
     else:
+        app.logger.info(f"File:{post_img.name} Wasn't found!")
         post_img = ""
     return prev_img, post_img
 
+
 def get_repo(path):
+    """
+    Returns repo instance, if the subdirectory is provided it goes up to the base directory
+    :param path: Repopath
+    :return:
+    """
     return Repo(path, search_parent_directories=True)
 
+
 def get_gitdifftext(orig, diff, repo):
+    """
+    Compares two strings via git hash-objects
+    :param orig: Original string
+    :param diff: Modified string
+    :param repo: repo instance
+    :return:
+    """
     from subprocess import run, PIPE
     p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
             input=orig, encoding='utf-8')
     p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
              input=diff, encoding='utf-8')
-    return repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[
-        -1].strip()
+    return repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[-1].strip()
+
 
 def get_difftext(origtext, item, folder, repo):
+    """
+    Compares the original and a modified string
+    :param origtext: original text string
+    :param item: git-python item instances
+    :param folder: repo folder
+    :param repo: repo instance
+    :return:
+    """
+    # The "<<<<<<< HEAD" indicates a merge conflicts and need other operations
     if "<<<<<<< HEAD\n" in origtext:
         with open(folder.joinpath(item.a_path), "r") as fin:
             mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
@@ -78,17 +122,23 @@ def get_difftext(origtext, item, folder, repo):
         try:
             difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
         except UnicodeDecodeError as ex:
-            print("Warning the diff text could not be decoded! ",ex)
+            # The UnicodeDecodeError mostly appears if the orignal character is an combination of unicode symbols
+            # e.g. ä -> e+diacritic_mark and the modified character only differs in one and not all parts e.g. ö.
+            app.logger.warning(f"File:{item.a_path} Warning the diff text could not be decoded! Error:{ex}")
             try:
                 difftext = get_gitdifftext(origtext, item.b_blob.data_stream.read().decode(), repo)
             except Exception as ex2:
-                print("Both files could not be compared!")
+                app.logger.warning(f"File:{item.a_path} Both files could not be compared! Error:{ex2}")
                 difftext = ""
     return difftext
 
 
 @app.route("/gtcheck", methods=["GET", "POST"])
 def gtcheck():
+    """
+    Gathers the information to render the gtcheck
+    :return:
+    """
     repo = get_repo(session["folder"])
     folder = Path(session["folder"])
     name = repo.config_reader().get_value("user", "name")
@@ -140,7 +190,7 @@ def gtcheck():
                 pop_idx('difflist',session['skip'] + fileidx)
                 repo.git.add(str(filename), u=True)
             else:
-                session["skip"]+=1
+                session["skip"] += 1
             continue
         fname = folder.joinpath(item.a_path)
         mods = modifications(difftext)
@@ -179,6 +229,7 @@ def gtcheck():
         if diffhead:
             commitmsg = f"[GT Checked] Staged Files: {diffhead}"
             modtext = f"Please commit the staged files! You skipped {session['skip']} files."
+            session['difflen'] = session['skip']
             return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext,
                                    files_left="0")
         if not session['difflist']:
@@ -187,15 +238,32 @@ def gtcheck():
         return gtcheck()
 
 def pop_idx(lname, popidx):
+    """
+    Pops the item from the index off a list, if the index is in the range
+    :param lname: Name of the list
+    :param popidx: Index to pop
+    :return:
+    """
     if len(session[lname]) > popidx:
         session[lname].pop(popidx)
     return
 
+
 @app.route("/gtcheckedit", methods=["GET", "POST"])
 def gtcheckedit():
-    repo = get_repo(session["folder"])
-    fname = Path(session["folder"]).joinpath(session['fpath'])
+    """
+    Process the user input from gtcheck html pages
+    :return:
+    """
     data = request.form  # .to_dict(flat=False)
+    repo = get_repo(session["folder"])
+    # Check if mod files left
+    if session['difflen'] - session['skip'] == 0:
+        if data['selection'] == 'commit':
+            repo.git.commit('-m', data["commitmsg"])
+        session['difflist'] = []
+        return gtcheck()
+    fname = Path(session["folder"]).joinpath(session['fpath'])
     # Update git config
     repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
     repo.config_writer().set_value('user', 'email', data.get('email','')).release()
@@ -208,7 +276,7 @@ def gtcheckedit():
     session['undo_fpath'] = str(fname)
     session['undo_value'] = session['modtext']
     if data['selection'] == 'commit':
-        if session['difflen']-session['skip'] != 0:
+        if data['difflen']-session['skip'] != 0:
             if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
                 with open(fname, "w") as fout:
                     fout.write(modtext)
@@ -236,6 +304,12 @@ def gtcheckedit():
 
 @app.route("/gtcheckinit", methods=["POST"])
 def gtcheckinit():
+    """
+    Process user input from setup page.
+    Initial set the session-variables, which are stored in a cookie.
+    Triggers first render of gtcheck html page
+    :return:
+    """
     data = request.form  # .to_dict(flat=False)
     folder = data['repo']
     repo = get_repo(folder)
@@ -257,9 +331,10 @@ def gtcheckinit():
     if data.get("checkout", "off") == "on" and data["new_branch"] != "":
         repo.git.checkout(data["branches"], b=data["new_branch"])
     elif data["branches"] != str(repo.active_branch):
+        app.logger.warning(f"Branch was force checkout from {str(repo.active_branch)} to {data['branches']}")
         repo.git.reset()
         repo.git.checkout("-f", data["branches"])
-    # untracked files to potential add
+    # Add untracked files to index (--intent-to-add)
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
     # Check requirements
     assert repo.is_dirty(), "No modified gt-files in the repository"  # check the dirty state
@@ -267,6 +342,10 @@ def gtcheckinit():
 
 
 def clean_symlinks():
+    """
+    Unlink symbolic linked folder in static/symlink
+    :return:
+    """
     symlinkfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/")
     for folder in symlinkfolder.iterdir():
         if folder.is_dir():
@@ -276,12 +355,18 @@ def clean_symlinks():
 
 @app.route("/")
 def index():
+    """
+    Renders setup page
+    :return:
+    """
     if len(sys.argv) > 1:
         folder = Path(sys.argv[1])
     else:
         folder = Path(".")
     repo = get_repo(folder)
     folder = Path(repo.git_dir).parent
+    # Create repository depending logger
+    logger(f"./logs/{folder.name}_{repo.active_branch}.log".replace(' ','_'))
     name = repo.config_reader().get_value("user", "name")
     clean_symlinks()
     if name == "":
@@ -296,27 +381,54 @@ def index():
 
 @app.errorhandler(500)
 def internal_error(error):
-    print(str(error))
+    """
+    Log 500 errors
+    :param error:
+    :return:
+    """
+    app.logger.error(str(error))
 
 
 @app.errorhandler(404)
 def not_found_error(error):
-    print(str(error))
+    """
+    Log 404 errors
+    :param error:
+    :return:
+    """
+    app.logger.error(str(error))
 
 
-if not app.debug:
-    file_handler = FileHandler('error.log')
-    file_handler.setFormatter(
-        Formatter('%(asctime)s %(levelname)s: \
-            %(message)s [in %(pathname)s:%(lineno)d]')
-    )
-    file_handler.setLevel(logging.INFO)
+def logger(fname):
+    """
+    Adds rotatingfilehandler to app logger
+    :param fname: log filename
+    :return:
+    """
+    file_handler = RotatingFileHandler(fname, maxBytes=100000, backupCount=1)
+    file_handler.setFormatter(Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+    file_handler.setLevel(logging.WARNING)
+    if len(app.logger.handlers) > 1:
+        app.logger.removeHandler(app.logger.handlers[1])
     app.logger.addHandler(file_handler)
 
 
+# Init basic logger
+app.logger.setLevel(logging.INFO)
+if not app.debug:
+    logger('./logs/app.log')
+
+
 def run():
+    """
+    Starting point to run the app
+    :return:
+    """
     port = int(os.environ.get('PORT', 5000))
+    # Set current time as secret_key for the cookie
+    # The cookie can keep variables for the whole session (max. 4kb)
     app.config['SECRET_KEY'] = str(int(time.time()))
+    # Start webrowser with url (can trigger twice)
     webbrowser.open_new('http://127.0.0.1:5000/')
     app.run(host='127.0.0.1', port=port, debug=True)
 
