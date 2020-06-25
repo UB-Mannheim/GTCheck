@@ -317,7 +317,7 @@ if not app.debug:
 def run():
     port = int(os.environ.get('PORT', 5000))
     app.config['SECRET_KEY'] = str(int(time.time()))
-    #webbrowser.open_new('http://127.0.0.1:5000/')
+    webbrowser.open_new('http://127.0.0.1:5000/')
     app.run(host='127.0.0.1', port=port, debug=True)
 
 
