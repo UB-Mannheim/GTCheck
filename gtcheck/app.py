@@ -196,8 +196,17 @@ def gtcheckedit():
     repo = get_repo(session["folder"])
     fname = Path(session["folder"]).joinpath(session['fpath'])
     data = request.form  # .to_dict(flat=False)
+    # Update git config
+    repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
+    repo.config_writer().set_value('user', 'email', data.get('email','')).release()
     modtext = data['modtext'].replace("\r\n","\n")
     session['vkeylang'] = data['vkeylang']
+    if data.get('undo', None):
+        repo.git.reset('HEAD', session['undo_fpath'])
+        with open(session['undo_fpath'],"w") as fout:
+            fout.write(session['undo_value'])
+    session['undo_fpath'] = str(fname)
+    session['undo_value'] = session['modtext']
     if data['selection'] == 'commit':
         if session['difflen']-session['skip'] != 0:
             if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
@@ -230,6 +239,8 @@ def gtcheckinit():
     data = request.form  # .to_dict(flat=False)
     folder = data['repo']
     repo = get_repo(folder)
+    repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
+    repo.config_writer().set_value('user', 'email', data.get('email','')).release()
     session.clear()
     session["folder"] = folder
     session["skip"] = 0
@@ -238,16 +249,19 @@ def gtcheckinit():
     session['skipcc'] = True if 'skipCC' in data.keys() else False
     session['regexnum'] = data['regexnum']
     session['vkeylang'] = ""
+    session['undo_fpath'] = ""
+    session['undo_value'] = ""
+    assert not repo.bare, "Git repo is bare"  # check if repo is bare
+    if data.get("reset", "off") == "on":
+        repo.git.reset()
+    if data.get("checkout", "off") == "on" and data["new_branch"] != "":
+        repo.git.checkout(data["branches"], b=data["new_branch"])
+    elif data["branches"] != str(repo.active_branch):
+        repo.git.reset()
+        repo.git.checkout("-f", data["branches"])
     # untracked files to potential add
     [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
-    if data["branches"] != repo.active_branch:
-        assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
-        # repo.git.checkout(data["branches"])
-    if data.get("checkout", "off") == "on" and data["new_branch"] != "":
-        assert repo.untracked_files, "Untracked files detected, please resolve for checkout branches"
-        repo.git.checkout(data["branches"], b=data["new_branch"])
-        # Check requirements
-    assert not repo.bare, "Git repo is bare"  # check if repo is bare
+    # Check requirements
     assert repo.is_dirty(), "No modified gt-files in the repository"  # check the dirty state
     return gtcheck()
 
@@ -296,8 +310,6 @@ if not app.debug:
         Formatter('%(asctime)s %(levelname)s: \
             %(message)s [in %(pathname)s:%(lineno)d]')
     )
-    #hey = logging
-    #app.logger.setLevel(logging.INFO)
     file_handler.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
 
@@ -305,7 +317,7 @@ if not app.debug:
 def run():
     port = int(os.environ.get('PORT', 5000))
     app.config['SECRET_KEY'] = str(int(time.time()))
-    webbrowser.open_new('http://127.0.0.1:5000/')
+    #webbrowser.open_new('http://127.0.0.1:5000/')
     app.run(host='127.0.0.1', port=port, debug=True)
 
 

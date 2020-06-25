@@ -144,10 +144,19 @@
 		<h2 class="heading center">GT Check</h2>
 	</div>
 	<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
-		<div class="fixed-action-btn" style="height: 97%;right:-12%"  id="group1" >
+		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group" >
 		<div id="switcher"></div>
 		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
 		<select class="browser-default form-control" name="vkeylang" style="width:40%;font-size:0.75rem" id="lang"></select>
+			<label for="undo">Undo last action</label>
+			<div class="switch"  id="undo">
+				<label>
+					Off
+					<input type="checkbox" name="undo">
+					<span class="lever"></span>
+					On
+				</label>
+			</div>
 		</div>
 	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
@@ -157,7 +166,7 @@
 				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-50%;float:right" type="toggle" name="action">
 				<i class="material-icons" id="vkey-icon">keyboard</i></a>
 			</div>
-			<div class="fixed-action-btn"  id="group1i" >
+			<div class="fixed-action-btn"  id="submit-group">
 				<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
 				<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
 				<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>

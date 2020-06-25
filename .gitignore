@@ -9,6 +9,9 @@ __pycache__/
 # Pycharm
 .idea
 
+# Symlink
+gtcheck/static/symlink/
+
 # Venv
 .gtcheck
 
