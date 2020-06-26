@@ -56,6 +56,13 @@ A virtual keyboard supports character replacements and the transcription of miss
 UTF-8 Foldername:
 git config core.quotepath off
 
+Spellchecking:
+This program uses the browser spellchecking.
+E.g. Firefox:
+https://support.mozilla.org/en-US/kb/how-do-i-use-firefox-spell-checker
+https://addons.mozilla.org/de/firefox/language-tools/
+
+
 Copyright and License
 --------
 
