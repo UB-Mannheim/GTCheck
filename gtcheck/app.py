@@ -45,10 +45,10 @@ def color_diffs(difftext):
     :param difftext: Compared text, differences are marked with {+ ADD +} [- DEL -]
     :return:
     """
-    return difftext.replace("{+", '<span style="color:green">') \
-        .replace("+}", "</span>") \
-        .replace("[-", '<span style="color:red">') \
-        .replace("-]", "</span>")
+    return difftext.replace('{+', '<span style="color:green">') \
+        .replace('+}', '</span>') \
+        .replace('[-', '<span style="color:red">') \
+        .replace('-]', '</span>')
 
 
 def surrounding_images(img, folder):
@@ -101,7 +101,7 @@ def get_gitdifftext(orig, diff, repo):
             input=orig, encoding='utf-8')
     p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
              input=diff, encoding='utf-8')
-    return repo.git.diff(p.stdout.strip(), p2.stdout.strip(), "-p", "--word-diff").split("@@")[-1].strip()
+    return repo.git.diff(p.stdout.strip(), p2.stdout.strip(), '-p', '--word-diff').split('@@')[-1].strip()
 
 
 def get_difftext(origtext, item, folder, repo):
@@ -115,7 +115,7 @@ def get_difftext(origtext, item, folder, repo):
     """
     # The "<<<<<<< HEAD" indicates a merge conflicts and need other operations
     if "<<<<<<< HEAD\n" in origtext:
-        with open(folder.joinpath(item.a_path), "r") as fin:
+        with open(folder.joinpath(item.a_path), 'r') as fin:
             mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
         difftext = get_gitdifftext(mergetext[0],mergetext[1], repo)
     else:
@@ -133,17 +133,17 @@ def get_difftext(origtext, item, folder, repo):
     return difftext
 
 
-@app.route("/gtcheck", methods=["GET", "POST"])
+@app.route('/gtcheck', methods=['GET', 'POST'])
 def gtcheck():
     """
     Gathers the information to render the gtcheck
     :return:
     """
-    repo = get_repo(session["folder"])
-    folder = Path(session["folder"])
-    name = repo.config_reader().get_value("user", "name")
-    name = "GTChecker" if name == "" else name
-    email = repo.config_reader().get_value("user", "email")
+    repo = get_repo(session['folder'])
+    folder = Path(session['folder'])
+    name = repo.config_reader().get_value('user', 'name')
+    name = 'GTChecker' if name == "" else name
+    email = repo.config_reader().get_value('user', 'email')
     # Diff Head
     diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
     #difflist =  [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
@@ -158,7 +158,7 @@ def gtcheck():
     difflist = session['difflist'][session['skip']:]
     nextcounter = 0
     for fileidx, filename in enumerate(difflist):
-        item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex=".")
+        item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex='.')
         if item:
             item = item[0]
         else:
@@ -186,11 +186,11 @@ def gtcheck():
             modtext = folder.absolute().joinpath(item.b_path).open().read().lstrip(" ")
         if origtext.strip() == modtext.strip() and session['skipcc']:
             nextcounter += 1
-            if session["addcc"]:
+            if session['addcc']:
                 pop_idx('difflist',session['skip'] + fileidx)
                 repo.git.add(str(filename), u=True)
             else:
-                session["skip"] += 1
+                session['skip'] += 1
             continue
         fname = folder.joinpath(item.a_path)
         mods = modifications(difftext)
@@ -209,7 +209,7 @@ def gtcheck():
         inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
         if not img:
-            return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name,
+            return render_template("gtcheck.html", repo=session['folder'], branch=repo.active_branch, name=name,
                                    email=email, commitmsg=commitmsg,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
                                    files_left=str(session['difflen']-session['skip']),
@@ -218,7 +218,7 @@ def gtcheck():
         else:
             img_out = Path("./symlink/").joinpath(img.relative_to(folder.parent))
             prev_img, post_img = surrounding_images(img, folder)
-            return render_template("gtcheck.html", repo=session["folder"], branch=repo.active_branch, name=name,
+            return render_template("gtcheck.html", repo=session['folder'], branch=repo.active_branch, name=name,
                                    email=email, commitmsg=commitmsg, image=img_out, previmage=prev_img,
                                    postimage=post_img,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
@@ -234,7 +234,7 @@ def gtcheck():
                                    files_left="0")
         if not session['difflist']:
             return render_template("nofile.html")
-        session["skip"] = 0
+        session['skip'] = 0
         return gtcheck()
 
 def pop_idx(lname, popidx):
@@ -249,21 +249,21 @@ def pop_idx(lname, popidx):
     return
 
 
-@app.route("/gtcheckedit", methods=["GET", "POST"])
+@app.route('/gtcheckedit', methods=['GET', 'POST'])
 def gtcheckedit():
     """
     Process the user input from gtcheck html pages
     :return:
     """
     data = request.form  # .to_dict(flat=False)
-    repo = get_repo(session["folder"])
+    repo = get_repo(session['folder'])
     # Check if mod files left
     if session['difflen'] - session['skip'] == 0:
         if data['selection'] == 'commit':
-            repo.git.commit('-m', data["commitmsg"])
+            repo.git.commit('-m', data['commitmsg'])
         session['difflist'] = []
         return gtcheck()
-    fname = Path(session["folder"]).joinpath(session['fpath'])
+    fname = Path(session['folder']).joinpath(session['fpath'])
     # Update git config
     repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
     repo.config_writer().set_value('user', 'email', data.get('email','')).release()
@@ -278,13 +278,13 @@ def gtcheckedit():
     if data['selection'] == 'commit':
         if data['difflen']-session['skip'] != 0:
             if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
-                with open(fname, "w") as fout:
+                with open(fname, 'w') as fout:
                     fout.write(modtext)
             repo.git.add(str(fname), u=True)
-        repo.git.commit('-m', data["commitmsg"])
+        repo.git.commit('-m', data['commitmsg'])
         session['difflist'] = []
     elif data['selection'] == 'stash':
-        if session['modtype'] in ["new"]:
+        if session['modtype'] in ['new']:
             repo.git.rm('-f', str(fname))
         else:
             repo.git.checkout('--', str(fname))
@@ -292,7 +292,7 @@ def gtcheckedit():
             #repo.git.stash('push', str(fname))
     elif data['selection'] == 'add':
         if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
-            with open(fname, "w") as fout:
+            with open(fname, 'w') as fout:
                 fout.write(modtext)
         repo.git.add(str(fname), u=True)
     else:
@@ -302,7 +302,7 @@ def gtcheckedit():
     return gtcheck()
 
 
-@app.route("/gtcheckinit", methods=["POST"])
+@app.route('/gtcheckinit', methods=['POST'])
 def gtcheckinit():
     """
     Process user input from setup page.
@@ -316,8 +316,8 @@ def gtcheckinit():
     repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
     repo.config_writer().set_value('user', 'email', data.get('email','')).release()
     session.clear()
-    session["folder"] = folder
-    session["skip"] = 0
+    session['folder'] = folder
+    session['skip'] = 0
     session['difflist'] = []
     session['addcc'] = True if 'addCC' in data.keys() else False
     session['skipcc'] = True if 'skipCC' in data.keys() else False
@@ -326,16 +326,16 @@ def gtcheckinit():
     session['undo_fpath'] = ""
     session['undo_value'] = ""
     assert not repo.bare, "Git repo is bare"  # check if repo is bare
-    if data.get("reset", "off") == "on":
+    if data.get('reset', 'off') == 'on':
         repo.git.reset()
-    if data.get("checkout", "off") == "on" and data["new_branch"] != "":
-        repo.git.checkout(data["branches"], b=data["new_branch"])
-    elif data["branches"] != str(repo.active_branch):
+    if data.get('checkout', 'off') == 'on' and data['new_branch'] != "":
+        repo.git.checkout(data['branches'], b=data['new_branch'])
+    elif data['branches'] != str(repo.active_branch):
         app.logger.warning(f"Branch was force checkout from {str(repo.active_branch)} to {data['branches']}")
         repo.git.reset()
-        repo.git.checkout("-f", data["branches"])
+        repo.git.checkout('-f', data['branches'])
     # Add untracked files to index (--intent-to-add)
-    [repo.git.add("-N", item) for item in repo.untracked_files if ".gt.txt" in item]
+    [repo.git.add('-N', item) for item in repo.untracked_files if ".gt.txt" in item]
     # Check requirements
     assert repo.is_dirty(), "No modified gt-files in the repository"  # check the dirty state
     return gtcheck()
@@ -367,11 +367,11 @@ def index():
     folder = Path(repo.git_dir).parent
     # Create repository depending logger
     logger(f"./logs/{folder.name}_{repo.active_branch}.log".replace(' ','_'))
-    name = repo.config_reader().get_value("user", "name")
+    name = repo.config_reader().get_value('user', 'name')
     clean_symlinks()
     if name == "":
         name = "GTChecker"
-    email = repo.config_reader().get_value("user", "email")
+    email = repo.config_reader().get_value('user', 'email')
     diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
     if diffhead != "":
         flash(f"You have {diffhead} staged file[s] in the {repo.active_branch} branch! These files will be added to the next commit.")
