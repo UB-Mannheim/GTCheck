@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='gtcheck',
-      version='0.1',
+      version='0.2',
       description='Check modified gt line files in git repos',
       author='Jan Kamlah',
       url='https://github.com/jkamlah/gtcheck/',
