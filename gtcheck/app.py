@@ -413,18 +413,16 @@ def logger(fname):
     app.logger.addHandler(file_handler)
 
 
-# Init basic logger
-app.logger.setLevel(logging.INFO)
-if not app.debug:
-    logger('./logs/app.log')
-
-
 def run():
     """
     Starting point to run the app
     :return:
     """
     port = int(os.environ.get('PORT', 5000))
+    # Init basic logger
+    app.logger.setLevel(logging.INFO)
+    if not app.debug:
+        logger('./logs/app.log')
     # Set current time as secret_key for the cookie
     # The cookie can keep variables for the whole session (max. 4kb)
     app.config['SECRET_KEY'] = str(int(time.time()))
