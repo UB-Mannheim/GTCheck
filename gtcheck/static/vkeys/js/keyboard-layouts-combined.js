@@ -92,7 +92,7 @@ jQuery.keyboard.language.fen = {
 }};
 
 /* Spacing&GeneralPunctation (by JuniusX) */
-jQuery.keyboard.layouts['spacing-&-general-punctation'] = {
+jQuery.keyboard.layouts['spacing-general-punctation'] = {
 	'name' : 'Spacing & General Punctation (GTCheck)',
 	'lang' : ['sgp'],
 	'normal' : [
@@ -128,7 +128,7 @@ jQuery.keyboard.language.sgp = {
 }};
 
 /* Phonetics & IPA (by JuniusX) */
-jQuery.keyboard.layouts['phonetics-&-ipa'] = {
+jQuery.keyboard.layouts['phonetics-ipa'] = {
 	'name' : 'Phonetics & IPA (GTCheck)',
 	'lang' : ['pip'],
 	'normal' : [
@@ -166,7 +166,7 @@ jQuery.keyboard.language.pip = {
 }};
 
 /* Runics & Gothics */
-jQuery.keyboard.layouts['runics-&-gothics'] = {
+jQuery.keyboard.layouts['runics-gothics'] = {
 	'name' : 'Runics & Gothics (GTCheck)',
 	'lang' : ['rug'],
 	'normal' : [
@@ -193,7 +193,7 @@ jQuery.keyboard.language.rug = {
 }};
 
 /* Latin Supplement & Extended A */
-jQuery.keyboard.layouts['latin-sup-&-ext-a'] = {
+jQuery.keyboard.layouts['latin-sup-ext-a'] = {
 	'name' : 'Latin Sup & Ext A (GTCheck)',
 	'lang' : ['sea'],
 	'normal' : [
