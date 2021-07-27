@@ -41,6 +41,55 @@
     		$('select').formSelect();
  	 	});
 	</script>
+	<script>
+		function insertText(text)
+{
+	var $textbox = $("#keyboard");
+    var textStr  = $textbox.text();
+    var startPos = $textbox[0].selectionStart;
+    var endPos   = $textbox[0].selectionEnd;
+
+    // If set to true, the selection will NOT be replaced.
+    // Instead, the text will be inserted before the first highlighted character.
+    if (false)
+    {
+    	endPost = startPos;
+    }
+
+    var beforeStr = textStr.substr(0, startPos);
+    var afterStr  = textStr.substr(endPos, textStr.length);
+
+    textStr = beforeStr + text + afterStr;
+    $textbox.text(textStr);
+    $textbox.focus();
+    $textbox[0].selectionStart = endPos+text.length;
+    $textbox[0].selectionEnd = endPos+text.length;
+    return textStr;
+}
+
+$(function () {
+    $('#custom-key1').on('click', function () {
+        var text = $('#custom-key1').text();
+        insertText(text);
+    });
+    $('#custom-key2').on('click', function () {
+        var text = $('#custom-key2').text();
+        insertText(text);
+    });
+    $('#custom-key3').on('click', function () {
+        var text = $('#custom-key3').text();
+        insertText(text);
+    });
+    $('#custom-key4').on('click', function () {
+        var text = $('#custom-key4').text();
+        insertText(text);
+    });
+    $('#custom-key5').on('click', function () {
+        var text = $('#custom-key5').text();
+        insertText(text);
+    });
+});
+	</script>
 	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/previewkeyset.js') }}"></script>
 	<script>
 		var layouts = [
@@ -142,7 +191,7 @@
 	<div style="margin-left: 15px; margin-right: 15px;">
 		<h2 class="heading center">GT Check</h2>
 	</div>
-	<form id="gtcheckedit-form" action="{{ url_for('gtcheckedit') }}" method="POST" enctype="multipart/form-data">
+	<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
 		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group" >
 		<div id="switcher"></div>
 		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
@@ -152,6 +201,14 @@
 				<label>
 					Off
 					<input type="checkbox" name="undo">
+					<span class="lever"></span>
+					On
+				</label></div><br>
+			<label for="continue_skipped">Continue with skipped</label>
+			<div class="switch"  id="continue_skipped">
+				<label>
+					Off
+					<input type="checkbox" name="continue_skipped">
 					<span class="lever"></span>
 					On
 				</label>
@@ -164,6 +221,10 @@
 			<div class="mod-text"><textarea id="keyboard" name="modtext" contenteditable="true">{{ modtext }}</textarea>
 				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-50%;float:right" type="toggle" name="action">
 				<i class="material-icons" id="vkey-icon">keyboard</i></a>
+				{% for idx, custom_key in custom_keys.items() %}
+					<a class="btn-floating waves-effect waves-light" style="position:relative;left:-30%;float:right" type="button">
+					<i class="material-icons" id="custom-key{{ idx }}">{{ custom_key }}</i></a>
+				{% endfor %}
 			</div>
 			<div class="fixed-action-btn"  id="submit-group">
 				<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
@@ -176,6 +237,10 @@
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
 		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
 	</div>
+	<div class="progress blue lighten-4 tooltipped" data-position="top" data-tooltip="Progress: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }} %">
+		<span>Progress</span>
+		<div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
+	</div>
 	<div class="row" style="float:right">
             <div class="col s2">
 				<label style="font-size:0.5rem" for="name">Name</label>
@@ -184,6 +249,10 @@
             <div class="col s2">
 				<label style="font-size:0.5rem" for="email">Email</label>
                 <input type="text"  id="email" name="email" value="{{ email }}">
+            </div>
+            <div class="col s2">
+				<label style="font-size:0.5rem" for="files_len">Files overall</label>
+                <input type="text" id="files_len" name="files_len" value="{{ repo_data['diff_overall'] }}" readonly>
             </div>
 			<div class="col s2">
 				<label style="font-size:0.5rem" for="branch">Branch</label>

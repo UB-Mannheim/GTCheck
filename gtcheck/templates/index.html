@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GT Check</title>
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/materialize.min.css') }}" media="screen,projection"/>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/gtcheck.css') }}">
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body>
+<!--Import jQuery before materialize.js-->
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/materialize.min.js') }}"></script>
+<script>
+        $(document).ready(function() {
+        $('.collapsible').collapsible();
+        });
+</script>
+<script>
+        $(document).ready(function() {
+        $('select').material_select();
+        });
+</script>
+<script>
+  $(document).ready(function() {
+    Materialize.updateTextFields();
+  });
+</script>
+<div style="margin-left: 15px; margin-right: 15px;">
+    <h1 class="heading center">GT Check Selection</h1>
+</div>
+
+<div style="margin-left: 15px; margin-right: 15px;">
+    <h5 class="heading center">Groups</h5>
+</div>
+<ul class="collapsible">
+{% for group_name, repos in grprepos.items() %}
+    <li>
+      <div class="collapsible-header">{{ group_name }}</div>
+        {% for repo_path_hash, repo_data in repos.items() %}
+        <div class="collapsible-body">
+        <form id="gtcheck-form" action="{{ url_for('setup', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
+            <h5>{{ repo_data['name'] if repo_data['name'] != "" else repo_data['path'] }}
+                {% if repo_data['readme'] != "": %}
+                    <button type="button" class="waves-effect waves-teal btn-flat" onclick="window.location.href='{{ url_for('readme', readme_file=repo_data['readme']) }}';">Readme</button>
+                {% else %}
+                     <button type="button" class="waves-effect waves-teal btn-flat disabled" onclick="window.location.href='{{ url_for('readme', readme_file=repo_data['readme']) }}';">Readme</button>
+                {% endif %}
+            </h5>
+            <label>Description: {{ repo_data["info"] }}</label><br>
+            <input type="hidden" value="{{ repo_data['path'] }}" name="repo_path">
+            {% if repo_data['reserved_by'] == "": %}
+                <div class="input-field col s6">
+                    <input type="text" id=repo_name0 value="{{ repo }}" name="reserved_by">
+                    <label for=repo_name0>Editorname</label>
+                </div>
+                <button name="reserve" class="btn waves-effect waves-light" type="submit">Reserve</button>
+                <button class="btn waves-effect waves-light" type="submit" disabled>Start</button>
+                <button class="btn waves-effect waves-light" type="submit" disabled>Cancel reservation</button>
+            {% elif repo_data['diff_overall']-(repo_data['diff_list']|length)  != repo_data['diff_overall'] %}
+                <div class="input-field col s6">
+                    <input type="text" id=repo_name1 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
+                    <label for=repo_name1>Reserved by</label>
+                </div>
+                <button class="btn waves-effect waves-light" type="submit" disabled>Reserve</button>
+                <button name="start" class="btn waves-effect waves-light" type="submit" >Start</button>
+                <button name="reservation_cancel" class="btn waves-effect waves-light" type="submit" >Cancel reservation</button>
+                <label>Reserved since: {{ repo_data['reserved_since'] }}</label>
+                <label>Last action: {{ repo_data['last_action'] }}</label>
+            {% else %}
+                <div class="input-field col s6">
+                    <input type="text" id=repo_name2 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
+                    <label for=repo_name2>Reserved by</label>
+                </div>
+                <button name="done" class="btn waves-effect waves-light" type="submit">Done!</button>
+            {% endif %}
+                <label>Progress: {{ repo_data['diff_overall']-(repo_data['diff_list']|length) }}/{{ repo_data['diff_overall'] }}</label>
+                <label>Skipped: {{ repo_data['diff_skipped'] }}</label>
+                <div class="progress blue lighten-4 tooltipped" data-position="top" data-tooltip="Progress: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }} %">
+					<span>Progress</span>
+					<div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
+				</div>
+        </form>
+    </div>
+        {% endfor %}
+    </li>
+{% endfor %}
+</ul>
+
+</body>
+</html>

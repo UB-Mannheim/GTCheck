@@ -30,11 +30,11 @@
 <div class="container">
     <h4>Git credentials</h4>
     <br>
-    <form id="gtcheck-form" action="{{ url_for('gtcheckinit') }}" method="POST" enctype="multipart/form-data">
+    <form id="gtcheck-form" action="{{ url_for('init', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
         <div class="row">
             <div class="input-field col s6">
-                <input type="text" id="name" name="name" value="{{ name }}">
-                <label for="name">Name</label>
+                <input type="text" id="username" name="username" value="{{ username }}">
+                <label for="username">Username</label>
             </div>
             <div class="input-field col s6">
                 <input type="text"  id="email" name="email" value="{{ email }}">
@@ -45,7 +45,7 @@
     <br>
     <div>
         <label for="repo">Directory</label>
-        <input type="text" id="repo" value="{{ repo }}" name="repo" readonly>
+        <input type="text" id="repo" value="{{ repo_path }}" name="repo_path" readonly>
     </div>
     <div>
         <label for="branches">Selected branch (keeps only untracked files, modified files get lost)</label>

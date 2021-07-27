@@ -1,21 +1,28 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+import datetime
 import imghdr
+import json
 import logging
 import os
 import re
-import sys
+import shutil
 import time
 import webbrowser
+from collections import defaultdict
+from configparser import NoSectionError
+from hashlib import sha256
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from flask import Flask, render_template, request, Markup, session, flash
-from git import Repo
+import click
+import markdown
+from flask import Flask, render_template, request, Markup, flash
+from git import Repo, InvalidGitRepositoryError
+
+from config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR
 
 app = Flask(__name__)
-
-APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def modifications(difftext):
@@ -28,8 +35,8 @@ def modifications(difftext):
     mods = []
     last_pos = 1
     for mod in re.finditer(r'(\[-(.*?)-\]|{\+(.*?)\+})', difftext):
-        sub = mod[2] if mod[2] != None else ""
-        add = mod[3] if mod[3] != None else ""
+        sub = mod[2] if mod[2] is not None else ""
+        add = mod[3] if mod[3] is not None else ""
         if add != "" and len(mods) > 0 and last_pos == mod.regs[0][0]:
             if mods[len(mods) - 1][1] == "":
                 mods[len(mods) - 1][1] = add
@@ -51,30 +58,27 @@ def color_diffs(difftext):
         .replace('-]', '</span>')
 
 
-def surrounding_images(img, folder):
+def surrounding_images(img, regex):
     """
     Finding predecessor and successor images to gain more context for the user.
     The basic regex to extract the pagenumber can be set on the setup page and
-    is kept in the session['regexnum'] variable (Default  ^(.*?)(\d+)(\D*)$).
+    is kept in the repo_data['regexnum'] variable (Default  ^(.*?)(\d+)(\D*)$).
     :param img: Imagename
-    :param folder: Foldername
     :return:
     """
-    imgmatch = re.match(rf"{session['regexnum']}", img.name)
+    imgmatch = re.match(rf"{regex}", img.name)
     imgint = int(imgmatch[2])
     imgprefix = img.name[:imgmatch.regs[1][1]]
     imgpostfix = img.name[imgmatch.regs[3][0]:]
-    prev_img = img.parent.joinpath(imgprefix + f"{imgint - 1:0{imgmatch.regs[2][1]-imgmatch.regs[2][0]}d}" + imgpostfix)
-    post_img = img.parent.joinpath(imgprefix + f"{imgint + 1:0{imgmatch.regs[2][1]-imgmatch.regs[2][0]}d}" + imgpostfix)
-    if prev_img.exists():
-        prev_img = Path("./symlink/").joinpath(prev_img.relative_to(folder.parent))
-    else:
-        app.logger.info(f"File:{prev_img.name} Wasn't found!")
+    prev_img = img.parent.joinpath(
+        imgprefix + f"{imgint - 1:0{imgmatch.regs[2][1] - imgmatch.regs[2][0]}d}" + imgpostfix)
+    post_img = img.parent.joinpath(
+        imgprefix + f"{imgint + 1:0{imgmatch.regs[2][1] - imgmatch.regs[2][0]}d}" + imgpostfix)
+    if not prev_img.exists():
+        app.logger.info(f"File:{prev_img.name} not found!")
         prev_img = ""
-    if post_img.exists():
-        post_img = Path("./symlink/").joinpath(post_img.relative_to(folder.parent))
-    else:
-        app.logger.info(f"File:{post_img.name} Wasn't found!")
+    if not post_img.exists():
+        app.logger.info(f"File:{post_img.name} not found!")
         post_img = ""
     return prev_img, post_img
 
@@ -85,7 +89,13 @@ def get_repo(path):
     :param path: Repopath
     :return:
     """
-    return Repo(path, search_parent_directories=True)
+    repo = None
+    try:
+       repo = Repo(path, search_parent_directories=True)
+    except InvalidGitRepositoryError:
+        app.logger.warning(f'Invalid gitrepository access: {path}')
+        pass
+    return repo
 
 
 def get_gitdifftext(orig, diff, repo):
@@ -117,7 +127,7 @@ def get_difftext(origtext, item, folder, repo):
     if "<<<<<<< HEAD\n" in origtext:
         with open(folder.joinpath(item.a_path), 'r') as fin:
             mergetext = fin.read().split("<<<<<<< HEAD\n")[-1].split("\n>>>>>>>")[0].split("\n=======\n")
-        difftext = get_gitdifftext(mergetext[0],mergetext[1], repo)
+        difftext = get_gitdifftext(mergetext[0], mergetext[1], repo)
     else:
         try:
             difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
@@ -133,177 +143,217 @@ def get_difftext(origtext, item, folder, repo):
     return difftext
 
 
-@app.route('/gtcheck', methods=['GET', 'POST'])
-def gtcheck():
+@app.route('/gtcheck/edit/<group_name>/<repo_path_hash>', methods=['GET', 'POST'])
+def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
     """
     Gathers the information to render the gtcheck
     :return:
     """
-    repo = get_repo(session['folder'])
-    folder = Path(session['folder'])
-    name = repo.config_reader().get_value('user', 'name')
-    name = 'GTChecker' if name == "" else name
-    email = repo.config_reader().get_value('user', 'email')
+    repo_data_path = get_repo_data_path(group_name, repo_path_hash)
+    if repo_data is None:
+        repo_data = get_repo_data(repo_data_path)
+    if repo is None:
+        repo = get_repo(repo_data['path'])
+    repo_path = Path(repo_data['path'])
+    name, email = get_git_credentials(repo)
     # Diff Head
-    diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
-    #difflist =  [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
+    diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
+    # diff_list =  [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
     #            ".gt.txt" in "".join(Path(item.a_path).suffixes)]
-    if not session['difflist'] or len(session['difflist']) <= session['skip']:
-        session['difflist'] = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
-        if len(session['difflist']) <= session['skip']:
-            session['difflist'] = [None]*session['skip']
-        else:
-            session['difflen'] = len(session['difflist'])
-            session['difflist'] = session['difflist'][:session['skip']+100]
-    difflist = session['difflist'][session['skip']:]
+    if not repo_data['diff_list'] or len(repo_data['diff_list']) <= repo_data['diff_skipped']:
+        repo_data['diff_list'] = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
+    diff_list = repo_data['diff_list'][repo_data['diff_skipped']:]
     nextcounter = 0
-    for fileidx, filename in enumerate(difflist):
+    for fileidx, filename in enumerate(diff_list):
         item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex='.')
         if item:
             item = item[0]
         else:
             item = repo.index.diff(None, paths=[filename])[0]
         if not item.a_blob and not item.b_blob:
-            pop_idx('difflist', session['skip'] + fileidx)
+            pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
             nextcounter += 1
             continue
-        session['modtype'] = "mod"
+        repo_data['modtype'] = "mod"
         mergetext = []
-        origtext = item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
-        difftext = get_difftext(origtext, item, folder, repo)
+        try:
+            origtext = item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
+            path = item.a_path
+        except:
+            origtext = ""
+            path = item.b_path
+        difftext = get_difftext(origtext, item, repo_path, repo)
         diffcolored = color_diffs(difftext)
         if origtext == "" and not item.deleted_file or item.new_file:
-            session['modtype'] = "new"
-            diffcolored = "<span style='color:green'>This untracked file gets added when committed and deleted when stashed!</span>"
+            repo_data['modtype'] = "new"
+            diffcolored = "<span style='color:green'>This untracked file gets added " \
+                          "when committed and deleted when stashed!</span>"
         if item.deleted_file or not item.b_path:
-            session['modtype'] = "del"
+            repo_data['modtype'] = "del"
             modtext = ""
-            diffcolored = "<span style='color:red'>This file gets deleted when committed and restored when stashed!</span>"
+            diffcolored = "<span style='color:red'>This file gets deleted " \
+                          "when committed and restored when stashed!</span>"
         elif mergetext:
-            session['modtype'] = "merge"
+            repo_data['modtype'] = "merge"
             modtext = mergetext[1]
         else:
-            modtext = folder.absolute().joinpath(item.b_path).open().read().lstrip(" ")
-        if origtext.strip() == modtext.strip() and session['skipcc']:
+            modtext = repo_path.absolute().joinpath(item.b_path).open().read().lstrip(" ")
+        if origtext.strip() == modtext.strip() and origtext.strip() != "" and repo_data['skipcc']:
             nextcounter += 1
-            if session['addcc']:
-                pop_idx('difflist',session['skip'] + fileidx)
+            if repo_data['addcc']:
+                pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
                 repo.git.add(str(filename), u=True)
             else:
-                session['skip'] += 1
+                repo_data['diff_skipped'] += 1
             continue
-        fname = folder.joinpath(item.a_path)
+        fname = repo_path.joinpath(path)
         mods = modifications(difftext)
-        if diffhead:
-            commitmsg = f"[GT Checked] Staged Files: {diffhead}"
+        if diff_head:
+            commitmsg = f"[GT Checked] Staged Files: {diff_head}"
         else:
-            commitmsg = f"[GT Checked]  {item.a_path}: {', '.join([orig + ' -> ' + mod for orig, mod in mods])}"
-        session['modtext'] = modtext
-        session['fname'] = str(fname)
-        session['fpath'] = str(item.a_path)
-        session['fileidx'] = fileidx-nextcounter
-        imgfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/{folder.name}")
-        # Create symlink to imagefolder
-        if not imgfolder.exists():
-            imgfolder.symlink_to(folder)
+            commitmsg = f"[GT Checked]  {path}: {', '.join([orig + ' -> ' + mod for orig, mod in mods])}"
+        repo_data['modtext'] = modtext
+        repo_data['fname'] = str(fname)
+        repo_data['fpath'] = str(path)
+        repo_data['fileidx'] = fileidx-nextcounter
         inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
         if not img:
-            return render_template("gtcheck.html", repo=session['folder'], branch=repo.active_branch, name=name,
+            write_repo_data(repo_data_path, repo_data)
+            return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, group_name=group_name,
+                                   branch=repo.active_branch, name=name,
                                    email=email, commitmsg=commitmsg,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(session['difflen']-session['skip']),
-                                   iname="No image", fname=str(fname.name), skipped=session['skip'],
-                                   vkeylang=session['vkeylang'])
+                                   files_left=str(len(repo_data['diff_list']) - repo_data['diff_skipped']),
+                                   iname="No image", fname=str(fname.name), skipped=repo_data['diff_skipped'],
+                                   vkeylang=repo_data['vkeylang'], custom_keys=repo_data['custom_keys'])
         else:
-            img_out = Path("./symlink/").joinpath(img.relative_to(folder.parent))
-            prev_img, post_img = surrounding_images(img, folder)
-            return render_template("gtcheck.html", repo=session['folder'], branch=repo.active_branch, name=name,
-                                   email=email, commitmsg=commitmsg, image=img_out, previmage=prev_img,
-                                   postimage=post_img,
+            img_out = Path(SYMLINK_DIR).joinpath(repo_path_hash).joinpath(str(img.relative_to(repo_path)))
+            prev_img, post_img = surrounding_images(img_out, repo_data['regexnum'])
+            write_repo_data(repo_data_path, repo_data)
+            return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, group_name=group_name,
+                                   branch=repo.active_branch, name=name,
+                                   email=email, commitmsg=commitmsg,
+                                   image=str(Path(img_out).relative_to(Path(SYMLINK_DIR).parent)),
+                                   previmage=str(Path(prev_img).relative_to(Path(
+                                       SYMLINK_DIR).parent)) if prev_img != "" else "",
+                                   postimage=str(Path(post_img).relative_to(Path(
+                                       SYMLINK_DIR).parent)) if post_img != "" else "",
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(session['difflen']-session['skip']),
-                                   iname=str(img.name), fname=str(fname.name), skipped=session['skip'],
-                                   vkeylang=session['vkeylang'])
+                                   files_left=str(len(repo_data['diff_list']) - repo_data['diff_skipped']),
+                                   iname=str(img.name), fname=str(fname.name), skipped=repo_data['diff_skipped'],
+                                   vkeylang=repo_data['vkeylang'], custom_keys=repo_data['custom_keys'])
     else:
-        if diffhead:
-            commitmsg = f"[GT Checked] Staged Files: {diffhead}"
-            modtext = f"Please commit the staged files! You skipped {session['skip']} files."
-            session['difflen'] = session['skip']
-            return render_template("gtcheck.html", name=name, email=email, commitmsg=commitmsg, modtext=modtext,
-                                   files_left="0")
-        if not session['difflist']:
+        if diff_head:
+            commitmsg = f"[GT Checked] Staged Files: {diff_head}"
+            modtext = f"Please commit the staged files! You skipped {repo_data['diff_skipped']} files."
+            write_repo_data(repo_data_path, repo_data)
+            return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, group_name=group_name,
+                                   name=name, email=email, commitmsg=commitmsg, modtext=modtext, custom_keys={}, files_left="0")
+        if not repo_data['diff_list']:
+            write_repo_data(repo_data_path, repo_data)
             return render_template("nofile.html")
-        session['skip'] = 0
-        return gtcheck()
+        repo_data['diff_skipped'] = 0
+        write_repo_data(repo_data_path, repo_data)
+        return gtcheck(group_name, repo_path_hash, repo, repo_data)
 
-def pop_idx(lname, popidx):
+
+def pop_idx(repo_data, lname, popidx):
     """
     Pops the item from the index off a list, if the index is in the range
     :param lname: Name of the list
     :param popidx: Index to pop
     :return:
     """
-    if len(session[lname]) > popidx:
-        session[lname].pop(popidx)
+    if len(repo_data[lname]) > popidx:
+        repo_data[lname].pop(popidx)
     return
 
 
-@app.route('/gtcheckedit', methods=['GET', 'POST'])
-def gtcheckedit():
+def set_git_credentials(repo, username, email, level='repository'):
+    """ Set the git credentials name and email adress."""
+    try:
+        if Path(repo.git_dir).joinpath('config.lock').exists():
+            Path(repo.git_dir).joinpath('config.lock').unlink()
+        repo.config_writer().set_value(level, 'name', username).release()
+        repo.config_writer().set_value(level, 'email', email).release()
+    except:
+        pass
+
+
+def get_git_credentials(repo, level='repository'):
+    """ Return the git credentials name and email adress."""
+    username, email = "", ""
+    try:
+        username = repo.config_reader().get_value(level, 'name')
+        email = repo.config_reader().get_value(level, 'email')
+    except NoSectionError:
+        pass
+    return username, email
+
+
+@app.route('/gtcheck/edit/update/<group_name>/<repo_path_hash>', methods=['GET', 'POST'])
+def edit(group_name, repo_path_hash):
     """
     Process the user input from gtcheck html pages
     :return:
     """
     data = request.form  # .to_dict(flat=False)
-    repo = get_repo(session['folder'])
+    repo_data_path = get_repo_data_path(group_name, repo_path_hash)
+    repo_data = get_repo_data(repo_data_path)
+    repo = get_repo(repo_data['path'])
     # Check if mod files left
-    if session['difflen'] - session['skip'] == 0:
-        if data['selection'] == 'commit':
-            repo.git.commit('-m', data['commitmsg'])
-        session['difflist'] = []
-        return gtcheck()
-    fname = Path(session['folder']).joinpath(session['fpath'])
-    # Update git config
-    repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
-    repo.config_writer().set_value('user', 'email', data.get('email','')).release()
-    modtext = data['modtext'].replace("\r\n","\n")
-    session['vkeylang'] = data['vkeylang']
+    difflen = len(repo_data['diff_list'])
+    repo_data['last_action'] = str(datetime.datetime.now())
+    if difflen <= repo_data['diff_skipped']:
+         if data['selection'] == 'commit':
+             repo.git.commit('-m', data['commitmsg'])
+         repo_data['diff_skipped'] = 0
+         write_repo_data(repo_data_path, repo_data)
+         return gtcheck(group_name, repo_path_hash, repo, repo_data)
+    fname = Path(repo_data['path']).joinpath(repo_data['fpath'])
+    modtext = data['modtext'].replace("\r\n", "\n")
+    repo_data['vkeylang'] = data['vkeylang']
     if data.get('undo', None):
-        repo.git.reset('HEAD', session['undo_fpath'])
-        with open(session['undo_fpath'],"w") as fout:
-            fout.write(session['undo_value'])
-    session['undo_fpath'] = str(fname)
-    session['undo_value'] = session['modtext']
+        repo.git.reset('HEAD', repo_data['undo_fpath'])
+        with open(repo_data['undo_fpath'], "w") as fout:
+            fout.write(repo_data['undo_value'])
+            repo_data['diff_skipped'] += 1
+    repo_data['undo_fpath'] = str(fname)
+    repo_data['undo_value'] = repo_data['modtext']
     if data['selection'] == 'commit':
-        if data['difflen']-session['skip'] != 0:
-            if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
+        if difflen - repo_data['diff_skipped'] != 0:
+            if repo_data['modtext'].replace("\r\n", "\n") != modtext or repo_data['modtype'] == "merge":
                 with open(fname, 'w') as fout:
                     fout.write(modtext)
             repo.git.add(str(fname), u=True)
         repo.git.commit('-m', data['commitmsg'])
-        session['difflist'] = []
     elif data['selection'] == 'stash':
-        if session['modtype'] in ['new']:
+        if repo_data['modtype'] in ['new']:
             repo.git.rm('-f', str(fname))
         else:
             repo.git.checkout('--', str(fname))
-            # Used stash push but it seems to have negative side effects
-            #repo.git.stash('push', str(fname))
+            repo_data['diff_overall'] -= 1
     elif data['selection'] == 'add':
-        if session['modtext'].replace("\r\n","\n") != modtext or session['modtype'] == "merge":
+        if repo_data['modtext'].replace("\r\n", "\n") != modtext or repo_data['modtype'] == "merge":
             with open(fname, 'w') as fout:
                 fout.write(modtext)
         repo.git.add(str(fname), u=True)
     else:
-        session['skip'] += 1
-        return gtcheck()
-    pop_idx('difflist', session['skip'] + session['fileidx'])
-    return gtcheck()
+        repo_data['diff_skipped'] += 1
+        if data.get('continue_skipped', None):
+            repo_data['diff_skipped'] = 0
+        write_repo_data(repo_data_path, repo_data)
+        return gtcheck(group_name, repo_path_hash, repo, repo_data)
+    pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + repo_data['fileidx'])
+    if data.get('continue_skipped', None):
+        repo_data['diff_skipped'] = 0
+    write_repo_data(repo_data_path, repo_data)
+    return gtcheck(group_name, repo_path_hash, repo, repo_data)
 
 
-@app.route('/gtcheckinit', methods=['POST'])
-def gtcheckinit():
+@app.route('/gtcheck/init/<group_name>/<repo_path_hash>', methods=['POST'])
+def init(group_name, repo_path_hash):
     """
     Process user input from setup page.
     Initial set the session-variables, which are stored in a cookie.
@@ -311,21 +361,16 @@ def gtcheckinit():
     :return:
     """
     data = request.form  # .to_dict(flat=False)
-    folder = data['repo']
-    repo = get_repo(folder)
-    repo.config_writer().set_value('user', 'name', data.get('name','GTChecker')).release()
-    repo.config_writer().set_value('user', 'email', data.get('email','')).release()
-    session.clear()
-    session['folder'] = folder
-    session['skip'] = 0
-    session['difflist'] = []
-    session['addcc'] = True if 'addCC' in data.keys() else False
-    session['skipcc'] = True if 'skipCC' in data.keys() else False
-    session['regexnum'] = data['regexnum']
-    session['vkeylang'] = ""
-    session['undo_fpath'] = ""
-    session['undo_value'] = ""
-    assert not repo.bare, "Git repo is bare"  # check if repo is bare
+    repo_path = data['repo_path']
+    repo = get_repo(repo_path)
+    repo_data_path = get_repo_data_path(group_name, repo_path_hash)
+    set_git_credentials(repo, data.get('username', 'GTChecker'), data.get('email', ''))
+    logger(str(Path(LOG_DIR).joinpath(f"{repo_path_hash}_{repo.active_branch}.log".replace(' ', '_')).resolve()))
+    update_repo_data(repo_data_path, {'username': data.get('username', 'GTChecker'),
+                                 'email':  data.get('email', ''),
+                                 'addcc': True if 'addCC' in data.keys() else False,
+                                 'skipcc': True if 'skipCC' in data.keys() else False,
+                                 'regexnum': data['regexnum']})
     if data.get('reset', 'off') == 'on':
         repo.git.reset()
     if data.get('checkout', 'off') == 'on' and data['new_branch'] != "":
@@ -334,49 +379,99 @@ def gtcheckinit():
         app.logger.warning(f"Branch was force checkout from {str(repo.active_branch)} to {data['branches']}")
         repo.git.reset()
         repo.git.checkout('-f', data['branches'])
-    # Add untracked files to index (--intent-to-add)
-    [repo.git.add('-N', item) for item in repo.untracked_files if ".gt.txt" in item]
-    # Check requirements
-    assert repo.is_dirty(), "No modified gt-files in the repository"  # check the dirty state
-    return gtcheck()
+    return gtcheck(group_name, repo_path_hash, repo)
 
 
-def clean_symlinks():
+def purge_folder(path, create_gitkeep=False):
+    """
+    Purge a folder (with content)
+    """
+    path = Path(path)
+    if path.exists():
+        shutil.rmtree(str(path.resolve()), ignore_errors=True)
+    path.mkdir()
+    if create_gitkeep:
+        path.joinpath('.gitkeep').touch()
+    return
+
+
+def clean_symlinks(folder=None):
     """
     Unlink symbolic linked folder in static/symlink
     :return:
     """
     symlinkfolder = Path(__file__).resolve().parent.joinpath(f"static/symlink/")
-    for folder in symlinkfolder.iterdir():
-        if folder.is_dir():
-            folder.unlink()
+    for symfolder in symlinkfolder.iterdir():
+        if symfolder.is_dir():
+            if folder is None:
+                symfolder.unlink()
+            elif symfolder.name == folder:
+                symfolder.unlink()
     return
 
 
-@app.route("/")
+def create_symlink(folder, symlink_fname):
+    symfolder = Path(SYMLINK_DIR).joinpath(symlink_fname)
+    # Create symlink to imagefolder
+    if not symfolder.exists():
+        symfolder.symlink_to(folder)
+    return
+
+
+@app.route('/readme', methods=['GET', 'POST'])
+def readme():
+    """Show readme file from gt repository"""
+    readme_file = request.args.get('readme_file', '')
+    with open(readme_file, "r") as fin:
+        md_template_string = markdown.markdown(
+            fin.read(), extensions=["fenced_code"])
+    return md_template_string
+
+
+@app.route('/gtcheck/setup/<group_name>/<repo_path_hash>', methods=['GET', 'POST'])
+def setup(group_name, repo_path_hash):
+    """
+    Renders setup page
+    :return:
+    """
+    data = request.form  # .to_dict(flat=False)
+    repo = get_repo(data['repo_path'])
+    repo_data_path = get_repo_data_path(group_name, repo_path_hash)
+    username, email = get_git_credentials(repo)
+    if 'reserve' in data.keys():
+        current_dt = datetime.datetime.now()
+        reserved_by = data.get('reserved_by', '') if len(data.get('reserved_by', '')) != 0 else "GTChecker"
+        update_repo_data(repo_data_path, {'reserved_since': str(current_dt), 'reserved_by': reserved_by})
+    if 'reservation_cancel' in data.keys():
+        update_repo_data(repo_data_path, {'reserved_since': '', 'reserved_by': ''})
+        return index()
+    elif 'done' in data.keys():
+        Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash + ".json").unlink()
+        return index()
+    diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
+    if diff_head != "":
+        flash(
+            f"You have {diff_head} staged file[s] in the {repo.active_branch} branch! "
+            f"These files will be added to the next commit.")
+    return render_template("setup.html", username=username, email=email,
+                           repo_path=data['repo_path'], group_name=group_name, repo_path_hash=repo_path_hash,
+                           active_branch=repo.active_branch, branches=repo.branches)
+
+
+@app.route("/", methods=['GET'])
 def index():
     """
     Renders setup page
     :return:
     """
-    if len(sys.argv) > 1:
-        folder = Path(sys.argv[1])
+    if app.config['SINGLE']:
+        repo = get_repo(app.config['REPO_PATH'])
+        username, email = get_git_credentials(repo)
+        return render_template("setup.html", username=username, email=email, repo_path=app.config['repo_path'],
+                               group_name="Single", repo_path_hash=hash_it(repo.working_dir),
+                                active_branch=repo.active_branch, branches=repo.branches)
     else:
-        folder = Path(".")
-    repo = get_repo(folder)
-    folder = Path(repo.git_dir).parent
-    # Create repository depending logger
-    logger(f"./logs/{folder.name}_{repo.active_branch}.log".replace(' ','_'))
-    name = repo.config_reader().get_value('user', 'name')
-    clean_symlinks()
-    if name == "":
-        name = "GTChecker"
-    email = repo.config_reader().get_value('user', 'email')
-    diffhead = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
-    if diffhead != "":
-        flash(f"You have {diffhead} staged file[s] in the {repo.active_branch} branch! These files will be added to the next commit.")
-    return render_template("setup.html", name=name, email=email, repo=str(folder), active_branch=repo.active_branch,
-                           branches=repo.branches)
+        return render_template("index.html", grprepos=get_repo_data_paths())
 
 
 @app.errorhandler(500)
@@ -413,23 +508,154 @@ def logger(fname):
     app.logger.addHandler(file_handler)
 
 
-def run():
+def get_repo_data_paths():
+    repo_data_paths = defaultdict(dict)
+    for repo_data_path in Path(DATA_DIR).rglob("*.json"):
+        with open(repo_data_path, 'r') as fin:
+            repo_data = json.load(fin)
+        repo_data_paths[repo_data_path.parent.name][repo_data_path.stem] = repo_data
+    return repo_data_paths
+
+
+def get_repo_data_path(group_name, repo_path_hash):
+    repo_group_dir = Path(DATA_DIR).joinpath(group_name)
+    return repo_group_dir.joinpath(repo_path_hash + ".json")
+
+
+def get_repo_data(repo_data_path):
+    with open(repo_data_path, 'r') as fin:
+        repo_data = json.load(fin)
+    return repo_data
+
+
+def write_repo_data(repo_data_path, repo_data):
+    with open(repo_data_path, 'w') as fout:
+        json.dump(repo_data, fout, indent=4)
+
+
+def update_repo_data(repo_data_path, key_vals):
+    repo_data = get_repo_data(repo_data_path)
+    for key, val in key_vals.items():
+        repo_data[key] = val
+    write_repo_data(repo_data_path, repo_data)
+
+
+def add_repo_path(group_name, set_name, repo_paths, info, readme):
+    repogroup_dir = Path(DATA_DIR).joinpath(group_name)
+    if not repogroup_dir.exists():
+        repogroup_dir.mkdir()
+    for repo_path in repo_paths:
+        repo = get_repo(repo_path)
+        if repo:
+            # Add untracked files to index (--intent-to-add)
+            [repo.git.add('-N', item) for item in repo.untracked_files if ".gt.txt" in item]
+            # Check requirements
+            if repo.bare:
+                app.logger.error(f'Bare repos can not be added: {repo_path}')
+                return
+            if not repo.is_dirty():
+                app.logger.error(f'The repo contains no modified GT data: {repo_path}')
+                return
+            diff_list = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
+            if not diff_list:
+                app.logger.error(f'The repo contains no modified GT data: {repo_path}')
+                return
+            # Add credentials to repository level
+            username, email = get_git_credentials(repo, level='repository' if app.config['WEB'] else 'user')
+            set_git_credentials(repo, username, email)
+            repo_path = repo.working_dir
+            repo_path_hash = hash_it(repo_path)
+            repo_data_path = repogroup_dir.joinpath(repo_path_hash+".json")
+            create_symlink(repo_path, repo_path_hash)
+            if not repo_data_path.exists():
+                if readme is None:
+                    readmes = [mdfile for mdfile in Path(repo_path).rglob('*.md') if "readme" in mdfile.name.lower()]
+                    readme_path = "" if not readmes else str(readmes[0].resolve())
+                else:
+                    readme_path = str(Path(readme).resolve())
+                infotext = info
+                with open(repo_data_path,'w') as fout:
+                    json.dump({'path': repo_path,
+                               'name': set_name,
+                               'info': infotext,
+                               'readme': readme_path,
+                               'reserved_by': '',
+                               'reserved_since': '',
+                               'last_action': '',
+                               'username': '',
+                               'email': '',
+                               'addcc': False,
+                               'skipcc': True,
+                               'regexnum': "^(.*?)(\d+)(\D*)$",
+                               'diff_list': diff_list,
+                               'diff_overall': len(diff_list),
+                               'diff_skipped': 0,
+                               'vkeylang': '',
+                               'custom_keys': {'1':'1'},
+                               'modtext': '',
+                               'fname': '',
+                               'fpath': '',
+                               'fileidx': 0,
+                               'undo_fpath': '',
+                               'undo_value': '',}, fout, indent=4)
+
+
+def hash_it(string):
+    return sha256(string.encode('utf-8')).hexdigest()
+
+
+@click.command()
+@click.argument('repo-paths', nargs=-1, type=click.Path(exists=True))
+@click.option('-g', '--group-name', default="default", help='Set the gitrepo to a group')
+@click.option('-s', '--set-name', default="", help='Name of the set (default: Set path)')
+@click.option('-i', '--info', default="", help="Information to the GT")
+@click.option('--readme', nargs=1, type=click.Path(exists=True),
+              help="Add readme markdown file from gt repo manually "
+                   "(default: add automatically the readme file from the main gitfolder.)")
+@click.option('-w', '--web', default=False, is_flag=True, help='Start web version')
+@click.option('-s', '--single', default=False, is_flag=True, help='Skip GT selection')
+@click.option('-p', '--purge',  multiple=True, type=click.Choice(['symlinks','logs','repodata','all']),
+                                                                              help='Purge selection')
+def run(repo_paths, group_name, set_name, info, readme, web, single, purge):
     """
     Starting point to run the app
     :return:
     """
-    port = int(os.environ.get('PORT', 5000))
+    # Purge the selection
+    if 'all' in purge: purge = ['all']
+    for purge_sel in purge:
+        if purge_sel in ['symlinks', 'all']:
+            purge_folder(SYMLINK_DIR, create_gitkeep=True)
+        if purge_sel in ['logs', 'all']:
+            purge_folder(LOG_DIR, create_gitkeep=True)
+        if purge_sel in ['repodata', 'all']:
+            purge_folder(DATA_DIR, create_gitkeep=True)
+    port = int(os.environ.get('PORT', int(PORT)))
     # Init basic logger
     app.logger.setLevel(logging.INFO)
     if not app.debug:
-        logger('./logs/app.log')
+        logdir = Path(LOG_DIR)
+        if not logdir.exists():
+            logdir.mkdir()
+        logger(str(logdir.joinpath('app.log').resolve()))
     # Set current time as secret_key for the cookie
     # The cookie can keep variables for the whole session (max. 4kb)
     app.config['SECRET_KEY'] = str(int(time.time()))
-    # Start webrowser with url (can trigger twice)
-    webbrowser.open_new('http://127.0.0.1:5000/')
-    app.run(host='127.0.0.1', port=port, debug=True)
-
+    app.config['WEB'] = web
+    app.config['SINGLE'] = single
+    if repo_paths:
+        if single:
+            app.config['REPO_PATH'] = repo_paths[0]
+            add_repo_path(group_name, set_name, app.config['REPO_PATH'],  info, readme)
+            # Start webrowser with url (can trigger twice)
+            webbrowser.open_new(f'http://{URL}:{PORT}/')
+        else:
+            # Add repo_paths
+            add_repo_path(group_name, set_name, repo_paths, info, readme)
+    try:
+        app.run(host=URL, port=port, debug=True)
+    except OSError:
+        print("Address already in use!")
 
 if __name__ == "__main__":
     run()

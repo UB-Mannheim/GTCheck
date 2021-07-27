@@ -13,12 +13,15 @@
 <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
 <script type="text/javascript" src="/static/js/materialize.min.js"></script>
 <div style="margin-left: 15px; margin-right: 15px;">
-    <h1 class="heading center">GT Check Setup</h1>
+    <h1 class="heading center">GT Check</h1>
 </div>
 
 <div class="container">
-    <h4>There are no modified Ground Truth files in this branch!</h4>
-    <button type="button" class="btn waves-effect waves-light" onclick="window.location.href='{{ url_for('index') }}';">Back to ground truth selection!</button>
-</div>
+    <h4>Done! But there are still skipped files, please resolve these open cases.</h4>
+    <form id="gtcheckedit-form" action="{{ url_for('gtcheck', repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
+        <div class="fixed-action-btn"  id="submit-group">
+				<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">Resolve skipped files!</button></a>
+			</div>
+    </form>
 </body>
 </html>
