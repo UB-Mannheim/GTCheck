@@ -216,6 +216,7 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
         repo_data['fname'] = str(fname)
         repo_data['fpath'] = str(path)
         repo_data['fileidx'] = fileidx-nextcounter
+        custom_keys = [' '.join(repo_data['custom_keys'][i:i + 10]) for i in range(0, len(repo_data['custom_keys']), 10)]
         inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
         if not img:
@@ -226,7 +227,7 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
                                    files_left=str(len(repo_data['diff_list']) - repo_data['diff_skipped']),
                                    iname="No image", fname=str(fname.name), skipped=repo_data['diff_skipped'],
-                                   vkeylang=repo_data['vkeylang'], custom_keys=repo_data['custom_keys'])
+                                   vkeylang=repo_data['vkeylang'], custom_keys=custom_keys)
         else:
             img_out = Path(SYMLINK_DIR).joinpath(repo_path_hash).joinpath(str(img.relative_to(repo_path)))
             prev_img, post_img = surrounding_images(img_out, repo_data['regexnum'])
@@ -242,14 +243,14 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
                                    files_left=str(len(repo_data['diff_list']) - repo_data['diff_skipped']),
                                    iname=str(img.name), fname=str(fname.name), skipped=repo_data['diff_skipped'],
-                                   vkeylang=repo_data['vkeylang'], custom_keys=repo_data['custom_keys'])
+                                   vkeylang=repo_data['vkeylang'], custom_keys=custom_keys)
     else:
         if diff_head:
             commitmsg = f"[GT Checked] Staged Files: {diff_head}"
             modtext = f"Please commit the staged files! You skipped {repo_data['diff_skipped']} files."
             write_repo_data(repo_data_path, repo_data)
             return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, group_name=group_name,
-                                   name=name, email=email, commitmsg=commitmsg, modtext=modtext, custom_keys={}, files_left="0")
+                                   name=name, email=email, commitmsg=commitmsg, modtext=modtext, custom_keys='', files_left="0")
         if not repo_data['diff_list']:
             write_repo_data(repo_data_path, repo_data)
             return render_template("nofile.html")
@@ -314,6 +315,9 @@ def edit(group_name, repo_path_hash):
     fname = Path(repo_data['path']).joinpath(repo_data['fpath'])
     modtext = data['modtext'].replace("\r\n", "\n")
     repo_data['vkeylang'] = data['vkeylang']
+    print(data['custom_keys'])
+    print(data['custom_keys'].split(' '))
+    repo_data['custom_keys'] = data['custom_keys'].split(' ')
     if data.get('undo', None):
         repo.git.reset('HEAD', repo_data['undo_fpath'])
         with open(repo_data['undo_fpath'], "w") as fout:
@@ -370,6 +374,7 @@ def init(group_name, repo_path_hash):
                                  'email':  data.get('email', ''),
                                  'addcc': True if 'addCC' in data.keys() else False,
                                  'skipcc': True if 'skipCC' in data.keys() else False,
+                                 'custom_keys': data['custom_keys'].split(' '),
                                  'regexnum': data['regexnum']})
     if data.get('reset', 'off') == 'on':
         repo.git.reset()
@@ -437,6 +442,7 @@ def setup(group_name, repo_path_hash):
     data = request.form  # .to_dict(flat=False)
     repo = get_repo(data['repo_path'])
     repo_data_path = get_repo_data_path(group_name, repo_path_hash)
+    repo_data = get_repo_data(repo_data_path)
     username, email = get_git_credentials(repo)
     if 'reserve' in data.keys():
         current_dt = datetime.datetime.now()
@@ -455,7 +461,8 @@ def setup(group_name, repo_path_hash):
             f"These files will be added to the next commit.")
     return render_template("setup.html", username=username, email=email,
                            repo_path=data['repo_path'], group_name=group_name, repo_path_hash=repo_path_hash,
-                           active_branch=repo.active_branch, branches=repo.branches)
+                           active_branch=repo.active_branch, branches=repo.branches,
+                           regexnum=repo_data['regexnum'], custom_keys=' '.join(repo_data['custom_keys']))
 
 
 @app.route("/", methods=['GET'])
@@ -469,7 +476,8 @@ def index():
         username, email = get_git_credentials(repo)
         return render_template("setup.html", username=username, email=email, repo_path=app.config['repo_path'],
                                group_name="Single", repo_path_hash=hash_it(repo.working_dir),
-                                active_branch=repo.active_branch, branches=repo.branches)
+                                active_branch=repo.active_branch, branches=repo.branches,
+                               regexnum="^(.*?)(\d+)(\D*)$", custom_keys="")
     else:
         return render_template("index.html", grprepos=get_repo_data_paths())
 
@@ -591,7 +599,7 @@ def add_repo_path(group_name, set_name, repo_paths, info, readme):
                                'diff_overall': len(diff_list),
                                'diff_skipped': 0,
                                'vkeylang': '',
-                               'custom_keys': {'1':'1'},
+                               'custom_keys': [],
                                'modtext': '',
                                'fname': '',
                                'fpath': '',

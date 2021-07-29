@@ -101,8 +101,10 @@
                 On
             </label>
         </div>
+        <label for="custom_keys">Input custom keys separated by whitespace!</label>
+        <input id="custom_keys" type="text" class="validate" name="custom_keys" value="{{ custom_keys }}">
         <label for="regexnum">Expert-Setting: Regex to grab the pagenumber. Modify if needed!</label>
-        <input id="regexnum" type="text" class="validate" name="regexnum" value="^(.*?)(\d+)(\D*)$">
+        <input id="regexnum" type="text" class="validate" name="regexnum" value="{{ regexnum }}">
         <br>
         <br>
     <button class="btn waves-effect waves-light" type="submit">Start</button>

@@ -42,58 +42,36 @@
  	 	});
 	</script>
 	<script>
-		function insertText(text)
-{
-	var $textbox = $("#keyboard");
-    var textStr  = $textbox.text();
-    var startPos = $textbox[0].selectionStart;
-    var endPos   = $textbox[0].selectionEnd;
+	function insertText(text)
+	{
+		var $textbox = $("#keyboard");
+		var textStr  = $textbox.text();
+		var startPos = $textbox[0].selectionStart;
+		var endPos   = $textbox[0].selectionEnd;
 
-    // If set to true, the selection will NOT be replaced.
-    // Instead, the text will be inserted before the first highlighted character.
-    if (false)
-    {
-    	endPost = startPos;
-    }
+		// If set to true, the selection will NOT be replaced.
+		// Instead, the text will be inserted before the first highlighted character.
+		if (false)
+		{
+			endPost = startPos;
+		}
 
-    var beforeStr = textStr.substr(0, startPos);
-    var afterStr  = textStr.substr(endPos, textStr.length);
+		var beforeStr = textStr.slice(0, startPos);
+		var afterStr  = textStr.slice(endPos, textStr.length);
 
-    textStr = beforeStr + text + afterStr;
-    $textbox.text(textStr);
-    $textbox.focus();
-    $textbox[0].selectionStart = endPos+text.length;
-    $textbox[0].selectionEnd = endPos+text.length;
-    return textStr;
-}
-
-$(function () {
-    $('#custom-key1').on('click', function () {
-        var text = $('#custom-key1').text();
-        insertText(text);
-    });
-    $('#custom-key2').on('click', function () {
-        var text = $('#custom-key2').text();
-        insertText(text);
-    });
-    $('#custom-key3').on('click', function () {
-        var text = $('#custom-key3').text();
-        insertText(text);
-    });
-    $('#custom-key4').on('click', function () {
-        var text = $('#custom-key4').text();
-        insertText(text);
-    });
-    $('#custom-key5').on('click', function () {
-        var text = $('#custom-key5').text();
-        insertText(text);
-    });
-});
+		textStr = beforeStr + text + afterStr;
+		$textbox.text(textStr);
+		$textbox.focus();
+		$textbox[0].selectionStart = endPos+text.length;
+		$textbox[0].selectionEnd = endPos+text.length;
+		return textStr;
+	}
 	</script>
 	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/previewkeyset.js') }}"></script>
 	<script>
 		var layouts = [
 			// 'title , file name , layout name'
+			"Custom Keys, gtc, custom-keys",
 			"Combining Diacritical Marks (GTCheck), cdm, combining-diacritical-marks",
 			"Fractions & Enclosed Number (GTCheck), fen, fractions-enclosed-numbers",
 			"Spacing & General Punctation (GTCheck), sgp, spacing-general-punctation",
@@ -192,7 +170,8 @@ $(function () {
 		<h2 class="heading center">GT Check</h2>
 	</div>
 	<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
-		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group" >
+		<input type="hidden"  id="custom_keys" name="custom_keys" value="{{ custom_keys }}" >
+		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group">
 		<div id="switcher"></div>
 		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
 		<select class="browser-default form-control" name="vkeylang" style="width:40%;font-size:0.75rem" id="lang"></select>
@@ -221,11 +200,11 @@ $(function () {
 			<div class="mod-text"><textarea id="keyboard" name="modtext" contenteditable="true">{{ modtext }}</textarea>
 				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-50%;float:right" type="toggle" name="action">
 				<i class="material-icons" id="vkey-icon">keyboard</i></a>
-				{% for idx, custom_key in custom_keys.items() %}
-					<a class="btn-floating waves-effect waves-light" style="position:relative;left:-30%;float:right" type="button">
-					<i class="material-icons" id="custom-key{{ idx }}">{{ custom_key }}</i></a>
-				{% endfor %}
-			</div>
+				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-10%;float:right" type="button">
+					<i class="material-icons" id="vkey-icon-remove">indeterminate_check_box</i></a>
+				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-10%;float:right" type="button">
+					<i class="material-icons" id="vkey-icon-add">add_box</i></a>
+				</div>
 			<div class="fixed-action-btn"  id="submit-group">
 				<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
 				<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
@@ -289,6 +268,38 @@ $(function () {
 			$('#keyboard').getkeyboard().reveal();
 		});
 
+		var customkeys = {{ custom_keys|safe }};
+		document.getElementById("custom_keys").value = customkeys.join(' ');
+
+		$('#vkey-icon-add').click(function(){
+			var $textbox = $("#keyboard");
+			var kb = $('#keyboard').getkeyboard();
+    		var textSel  = $textbox.caret().text;
+    		if (textSel != '' &&  textSel.indexOf(' ') == -1  && !customkeys.includes(textSel)) {
+				customkeys.push(textSel);
+				var kb = $('#keyboard').getkeyboard();
+				kb.options.customLayout= {
+						'normal': customkeys,
+					};
+				document.getElementById("custom_keys").value = customkeys.join(' ');
+				}
+		});
+
+		$('#vkey-icon-remove').click(function(){
+			var $textbox = $("#keyboard");
+    		var textSel  = $textbox.caret().text;
+    		if (textSel != '' && textSel.indexOf(' ') == -1 && customkeys.includes(textSel)) {
+    			var index = customkeys.indexOf(textSel);
+				customkeys.splice(index, 1);
+
+				var kb = $('#keyboard').getkeyboard();
+				kb.options.customLayout= {
+						'normal': customkeys,
+					};
+				document.getElementById("custom_keys").value = customkeys.join(' ');
+				}
+		});
+
 		$('#keyboard').keyboard({
 			  openOn: '',
 			  usePreview: false, // disabled for contenteditable
@@ -296,28 +307,14 @@ $(function () {
 			  autoAccept: true,
 			  layout: 'custom',
 			  customLayout: {
-					'normal': [
-						'` F 2 3 4 5 6 7 8 9 0 - = {bksp}',
-						'{tab} q w e r t y u i o p [ ] \\',
-						'a s d f g h j k l ; \' {enter}',
-						'{shift} z x c v b n m , . / {shift}',
-						'{accept} {space} {clear} {cancel}'
-					],
-					'shift': [
-						'~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-						'{tab} Q W E R T Y U I O P { } |',
-						'A S D F G H J K L : " {enter}',
-						'{shift} Z X C V B N M < > ? {shift}',
-						'{accept} {space} {clear} {cancel}'
-					]
+					'normal': customkeys,
 				},
 				display: {
 					del: '\u2326:Delete',
 				},
-			visible: function(e, kb) {
+		visible: function(e, kb) {
 				kb.$keyboard.find('.ui-keyboard-clear').addClass('ui-state-active')
 			}
-
 			})
 			// activate the typing extension
 			.addTyping({
