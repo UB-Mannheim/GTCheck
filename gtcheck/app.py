@@ -14,6 +14,8 @@ from hashlib import sha256
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from subprocess import run, PIPE, check_output
+from hashlib import sha1
 
 import click
 import markdown
@@ -22,7 +24,7 @@ from git import Repo, InvalidGitRepositoryError
 
 from config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR
 
-app = Flask(__name__)
+app = Flask('run') #app = Flask(__name__) throws error at the moment
 
 
 def modifications(difftext):
@@ -106,12 +108,10 @@ def get_gitdifftext(orig, diff, repo):
     :param repo: repo instance
     :return:
     """
-    from subprocess import run, PIPE
-    p = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
-            input=orig, encoding='utf-8')
-    p2 = run(['git', 'hash-object', '-', '--stdin'], stdout=PIPE,
-             input=diff, encoding='utf-8')
-    return repo.git.diff(p.stdout.strip(), p2.stdout.strip(), '-p', '--word-diff').split('@@')[-1].strip()
+    item_a = sha1((f'blob {len(orig)}\0{orig}').encode('utf-8'))
+    item_b = sha1((f'blob {len(diff)}\0{diff}').encode('utf-8'))
+    return check_output(['git', 'diff', '-p', '--word-diff', str(item_a.hexdigest()), str(item_b.hexdigest())]).decode(
+        'utf-8').split('@@')[-1].strip()
 
 
 def get_difftext(origtext, item, folder, repo):
@@ -158,54 +158,61 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
     name, email = get_git_credentials(repo)
     # Diff Head
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
-    # diff_list =  [item for item in repo.index.diff(None, create_patch=True, word_diff_regex=".") if
-    #            ".gt.txt" in "".join(Path(item.a_path).suffixes)]
     if not repo_data['diff_list'] or len(repo_data['diff_list']) <= repo_data['diff_skipped']:
         repo_data['diff_list'] = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
     diff_list = repo_data['diff_list'][repo_data['diff_skipped']:]
     nextcounter = 0
     for fileidx, filename in enumerate(diff_list):
         item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex='.')
-        if item:
-            item = item[0]
-        else:
-            item = repo.index.diff(None, paths=[filename])[0]
-        if not item.a_blob and not item.b_blob:
-            pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
-            nextcounter += 1
-            continue
-        repo_data['modtype'] = "mod"
-        mergetext = []
-        try:
-            origtext = item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
-            path = item.a_path
-        except:
+        if not item and repo_data['add_all']:
+            path = filename
             origtext = ""
-            path = item.b_path
-        difftext = get_difftext(origtext, item, repo_path, repo)
-        diffcolored = color_diffs(difftext)
-        if origtext == "" and not item.deleted_file or item.new_file:
+            difftext = open(Path(repo.working_dir).joinpath(filename),'r').read()
+            modtext = difftext
             repo_data['modtype'] = "new"
-            diffcolored = "<span style='color:green'>This untracked file gets added " \
-                          "when committed and deleted when stashed!</span>"
-        if item.deleted_file or not item.b_path:
-            repo_data['modtype'] = "del"
-            modtext = ""
-            diffcolored = "<span style='color:red'>This file gets deleted " \
-                          "when committed and restored when stashed!</span>"
-        elif mergetext:
-            repo_data['modtype'] = "merge"
-            modtext = mergetext[1]
+            diffcolored = "<span style='color:green'>The file gets added " \
+                              "when committed and deleted when stashed!</span>"
         else:
-            modtext = repo_path.absolute().joinpath(item.b_path).open().read().lstrip(" ")
-        if origtext.strip() == modtext.strip() and origtext.strip() != "" and repo_data['skipcc']:
-            nextcounter += 1
-            if repo_data['addcc']:
-                pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
-                repo.git.add(str(filename), u=True)
+            if item:
+                item = item[0]
             else:
-                repo_data['diff_skipped'] += 1
-            continue
+                item = repo.index.diff(None, paths=[filename])[0]
+            if not item.a_blob and not item.b_blob:
+                pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
+                nextcounter += 1
+                continue
+            repo_data['modtype'] = "mod"
+            try:
+                origtext = item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
+                path = item.a_path
+            except:
+                origtext = ""
+                path = item.b_path
+            difftext = get_difftext(origtext, item, repo_path, repo)
+            diffcolored = color_diffs(difftext)
+            mergetext = []
+            if origtext == "" and not item.deleted_file or item.new_file:
+                repo_data['modtype'] = "new"
+                diffcolored = "<span style='color:green'>This untracked file gets added " \
+                              "when committed and deleted when stashed!</span>"
+            if item.deleted_file or not item.b_path:
+                repo_data['modtype'] = "del"
+                modtext = ""
+                diffcolored = "<span style='color:red'>This file gets deleted " \
+                              "when committed and restored when stashed!</span>"
+            elif mergetext:
+                repo_data['modtype'] = "merge"
+                modtext = mergetext[1]
+            else:
+                modtext = repo_path.absolute().joinpath(item.b_path).open().read().lstrip(" ")
+            if origtext.strip() == modtext.strip() and origtext.strip() != "" and repo_data['skipcc']:
+                nextcounter += 1
+                if repo_data['addcc']:
+                    pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
+                    repo.git.add(str(filename), u=True)
+                else:
+                    repo_data['diff_skipped'] += 1
+                continue
         fname = repo_path.joinpath(path)
         mods = modifications(difftext)
         if diff_head:
@@ -315,8 +322,6 @@ def edit(group_name, repo_path_hash):
     fname = Path(repo_data['path']).joinpath(repo_data['fpath'])
     modtext = data['modtext'].replace("\r\n", "\n")
     repo_data['vkeylang'] = data['vkeylang']
-    print(data['custom_keys'])
-    print(data['custom_keys'].split(' '))
     repo_data['custom_keys'] = data['custom_keys'].split(' ')
     if data.get('undo', None):
         repo.git.reset('HEAD', repo_data['undo_fpath'])
@@ -337,7 +342,7 @@ def edit(group_name, repo_path_hash):
             repo.git.rm('-f', str(fname))
         else:
             repo.git.checkout('--', str(fname))
-            repo_data['diff_overall'] -= 1
+        repo_data['diff_overall'] -= 1
     elif data['selection'] == 'add':
         if repo_data['modtext'].replace("\r\n", "\n") != modtext or repo_data['modtype'] == "merge":
             with open(fname, 'w') as fout:
@@ -548,7 +553,7 @@ def update_repo_data(repo_data_path, key_vals):
     write_repo_data(repo_data_path, repo_data)
 
 
-def add_repo_path(group_name, set_name, repo_paths, info, readme):
+def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
     repogroup_dir = Path(DATA_DIR).joinpath(group_name)
     if not repogroup_dir.exists():
         repogroup_dir.mkdir()
@@ -561,13 +566,18 @@ def add_repo_path(group_name, set_name, repo_paths, info, readme):
             if repo.bare:
                 app.logger.error(f'Bare repos can not be added: {repo_path}')
                 return
-            if not repo.is_dirty():
-                app.logger.error(f'The repo contains no modified GT data: {repo_path}')
-                return
-            diff_list = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
-            if not diff_list:
-                app.logger.error(f'The repo contains no modified GT data: {repo_path}')
-                return
+            if not add_all:
+                if not repo.is_dirty():
+                    app.logger.error(f'The repo contains no modified GT data: {repo_path}')
+                    return
+                diff_list = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
+                if not diff_list:
+                    app.logger.error(f'The repo contains no modified GT data: {repo_path}')
+                    return
+            else:
+                diff_list = [str(path.relative_to(repo.working_dir)) for path in
+                             Path(repo.working_dir).rglob('*gt.txt')]
+
             # Add credentials to repository level
             username, email = get_git_credentials(repo, level='repository' if app.config['WEB'] else 'user')
             set_git_credentials(repo, username, email)
@@ -586,6 +596,7 @@ def add_repo_path(group_name, set_name, repo_paths, info, readme):
                     json.dump({'path': repo_path,
                                'name': set_name,
                                'info': infotext,
+                               'add_all': add_all,
                                'readme': readme_path,
                                'reserved_by': '',
                                'reserved_since': '',
@@ -614,6 +625,7 @@ def hash_it(string):
 
 @click.command()
 @click.argument('repo-paths', nargs=-1, type=click.Path(exists=True))
+@click.option('-a', '--add-all', default=False, is_flag=True, help='Add all ground truth files to the check.')
 @click.option('-g', '--group-name', default="default", help='Set the gitrepo to a group')
 @click.option('-s', '--set-name', default="", help='Name of the set (default: Set path)')
 @click.option('-i', '--info', default="", help="Information to the GT")
@@ -624,7 +636,7 @@ def hash_it(string):
 @click.option('-s', '--single', default=False, is_flag=True, help='Skip GT selection')
 @click.option('-p', '--purge',  multiple=True, type=click.Choice(['symlinks','logs','repodata','all']),
                                                                               help='Purge selection')
-def run(repo_paths, group_name, set_name, info, readme, web, single, purge):
+def run(repo_paths, add_all, group_name, set_name, info, readme, web, single, purge):
     """
     Starting point to run the app
     :return:
@@ -654,12 +666,12 @@ def run(repo_paths, group_name, set_name, info, readme, web, single, purge):
     if repo_paths:
         if single:
             app.config['REPO_PATH'] = repo_paths[0]
-            add_repo_path(group_name, set_name, app.config['REPO_PATH'],  info, readme)
+            add_repo_path(add_all, group_name, set_name, app.config['REPO_PATH'],  info, readme)
             # Start webrowser with url (can trigger twice)
             webbrowser.open_new(f'http://{URL}:{PORT}/')
         else:
             # Add repo_paths
-            add_repo_path(group_name, set_name, repo_paths, info, readme)
+            add_repo_path(add_all, group_name, set_name, repo_paths, info, readme)
     try:
         app.run(host=URL, port=port, debug=True)
     except OSError:
