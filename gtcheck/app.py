@@ -624,11 +624,17 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                     readme_path = "" if not readmes else str(readmes[0].resolve())
                 else:
                     readme_path = str(Path(readme).resolve())
+                try:
+                    init_head = repo.head.commit
+                except ValueError:
+                    app.logger.warning(f'The repo contains no head commit: {repo_path}')
+                    init_head = None
                 infotext = info
                 with open(repo_data_path,'w') as fout:
                     json.dump({'path': repo_path,
                                'name': set_name,
                                'info': infotext,
+                               'init_head': init_head,
                                'add_all': add_all,
                                'readme': readme_path,
                                'reserved_by': '',
@@ -652,7 +658,8 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                                'fpath': '',
                                'fileidx': 0,
                                'undo_fpath': '',
-                               'undo_value': '',}, fout, indent=4)
+                               'undo_value': '',
+                               }, fout, indent=4)
 
 
 def hash_it(string):
