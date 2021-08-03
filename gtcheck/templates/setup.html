@@ -105,6 +105,21 @@
         <input id="custom_keys" type="text" class="validate" name="custom_keys" value="{{ custom_keys }}">
         <label for="regexnum">Expert-Setting: Regex to grab the pagenumber. Modify if needed!</label>
         <input id="regexnum" type="text" class="validate" name="regexnum" value="{{ regexnum }}">
+        <label for="filter">Regex-Filter options</label>
+        <div class="row" id='filter' style="float:right">
+            <div class="col s3">
+				<label style="font-size:0.5rem" for="filter_all">One of the inputs contains</label>
+				<input class="validate" type="text" id="filter_all" name="filter_all" value="{{ filter_all }}">
+            </div>
+            <div class="col s3">
+				<label style="font-size:0.5rem" for="filter_from">Character changed from</label>
+                <input type="text"  id="filter_from" name="filter_from" value="{{ filter_from }}">
+            </div>
+            <div class="col s3">
+				<label style="font-size:0.5rem" for="filter_to">Character changed to</label>
+                <input type="text" id="filter_to" name="filter_to" value="{{ filter_to }}">
+        </div>
+        </div>
         <br>
         <br>
     <button class="btn waves-effect waves-light" type="submit">Start</button>

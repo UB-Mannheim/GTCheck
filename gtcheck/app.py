@@ -10,12 +10,11 @@ import time
 import webbrowser
 from collections import defaultdict
 from configparser import NoSectionError
-from hashlib import sha256
+from hashlib import sha256, sha1
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from subprocess import run, PIPE, check_output
-from hashlib import sha1
+from subprocess import check_output
 
 import click
 import markdown
@@ -58,6 +57,16 @@ def color_diffs(difftext):
         .replace('+}', '</span>') \
         .replace('[-', '<span style="color:red">') \
         .replace('-]', '</span>')
+
+def get_diffs(difftext):
+    """
+    Returns textpassage which differ from origintext
+    :param difftext:
+    :return:
+    """
+    origdiff = ' '.join([orig.split('-]')[0] for orig in difftext.split('[-') if '-]' in orig])
+    moddiff = ' '.join([mod.split('+}')[0] for mod in difftext.split('{+') if '+}' in mod])
+    return origdiff, moddiff
 
 
 def surrounding_images(img, regex):
@@ -153,18 +162,18 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
     if repo_data is None:
         repo_data = get_repo_data(repo_data_path)
     if repo is None:
-        repo = get_repo(repo_data['path'])
-    repo_path = Path(repo_data['path'])
+        repo = get_repo(repo_data.get('path'))
+    repo_path = Path(repo_data.get('path'))
     name, email = get_git_credentials(repo)
     # Diff Head
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
-    if not repo_data['diff_list'] or len(repo_data['diff_list']) <= repo_data['diff_skipped']:
+    if not repo_data.get('diff_list') or len(repo_data.get('diff_list')) <= repo_data.get('diff_skipped'):
         repo_data['diff_list'] = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
-    diff_list = repo_data['diff_list'][repo_data['diff_skipped']:]
+    diff_list = repo_data.get('diff_list')[repo_data.get('diff_skipped', 0):]
     nextcounter = 0
     for fileidx, filename in enumerate(diff_list):
         item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex='.')
-        if not item and repo_data['add_all']:
+        if not item and repo_data.get('add_all'):
             path = filename
             origtext = ""
             difftext = open(Path(repo.working_dir).joinpath(filename),'r').read()
@@ -178,7 +187,7 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
             else:
                 item = repo.index.diff(None, paths=[filename])[0]
             if not item.a_blob and not item.b_blob:
-                pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
+                pop_idx(repo_data, 'diff_list', repo_data.get('diff_skipped') + fileidx)
                 nextcounter += 1
                 continue
             repo_data['modtype'] = "mod"
@@ -205,14 +214,29 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
                 modtext = mergetext[1]
             else:
                 modtext = repo_path.absolute().joinpath(item.b_path).open().read().lstrip(" ")
-            if origtext.strip() == modtext.strip() and origtext.strip() != "" and repo_data['skipcc']:
+            if origtext.strip() == modtext.strip() and origtext.strip() != "" and repo_data.get('skipcc'):
                 nextcounter += 1
-                if repo_data['addcc']:
-                    pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + fileidx)
+                if repo_data.get('addcc'):
+                    pop_idx(repo_data, 'diff_list', repo_data.get('diff_skipped') + fileidx)
                     repo.git.add(str(filename), u=True)
                 else:
                     repo_data['diff_skipped'] += 1
                 continue
+
+        # Apply filter options
+        if repo_data.get('filter_all')+repo_data.get('filter_from')+repo_data.get('filter_to') != '':
+            if repo_data.get('filter_all') != '':
+                if not (re.search(rf"{repo_data.get('filter_all')}", origtext) or
+                        re.search(rf"{repo_data.get('filter_all')}", modtext)):
+                    nextcounter += 1
+                    continue
+            if repo_data.get('filter_from')+repo_data.get('filter_to') != '':
+                origdiff, moddiff = get_diffs(difftext)
+                if not (re.search(rf"{repo_data.get('filter_from')}", origdiff) and
+                        re.search(rf"{repo_data.get('filter_to')}", moddiff)):
+                    nextcounter += 1
+                    continue
+
         fname = repo_path.joinpath(path)
         mods = modifications(difftext)
         if diff_head:
@@ -223,7 +247,7 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
         repo_data['fname'] = str(fname)
         repo_data['fpath'] = str(path)
         repo_data['fileidx'] = fileidx-nextcounter
-        custom_keys = [' '.join(repo_data['custom_keys'][i:i + 10]) for i in range(0, len(repo_data['custom_keys']), 10)]
+        custom_keys = [' '.join(repo_data.get('custom_keys')[i:i + 10]) for i in range(0, len(repo_data.get('custom_keys')), 10)]
         inames = [iname for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*") if imghdr.what(iname)]
         img = inames[0] if inames else None
         if not img:
@@ -232,12 +256,12 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
                                    branch=repo.active_branch, name=name,
                                    email=email, commitmsg=commitmsg,
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(len(repo_data['diff_list']) - repo_data['diff_skipped']),
-                                   iname="No image", fname=str(fname.name), skipped=repo_data['diff_skipped'],
-                                   vkeylang=repo_data['vkeylang'], custom_keys=custom_keys)
+                                   files_left=str(len(repo_data.get('diff_list')) - repo_data.get('diff_skipped')),
+                                   iname="No image", fname=str(fname.name), skipped=repo_data.get('diff_skipped'),
+                                   vkeylang=repo_data.get('vkeylang'), custom_keys=custom_keys)
         else:
             img_out = Path(SYMLINK_DIR).joinpath(repo_path_hash).joinpath(str(img.relative_to(repo_path)))
-            prev_img, post_img = surrounding_images(img_out, repo_data['regexnum'])
+            prev_img, post_img = surrounding_images(img_out, repo_data.get('regexnum'))
             write_repo_data(repo_data_path, repo_data)
             return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, group_name=group_name,
                                    branch=repo.active_branch, name=name,
@@ -248,17 +272,17 @@ def gtcheck(group_name, repo_path_hash, repo=None, repo_data=None):
                                    postimage=str(Path(post_img).relative_to(Path(
                                        SYMLINK_DIR).parent)) if post_img != "" else "",
                                    difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(len(repo_data['diff_list']) - repo_data['diff_skipped']),
-                                   iname=str(img.name), fname=str(fname.name), skipped=repo_data['diff_skipped'],
-                                   vkeylang=repo_data['vkeylang'], custom_keys=custom_keys)
+                                   files_left=str(len(repo_data.get('diff_list')) - repo_data.get('diff_skipped')),
+                                   iname=str(img.name), fname=str(fname.name), skipped=repo_data.get('diff_skipped'),
+                                   vkeylang=repo_data.get('vkeylang'), custom_keys=custom_keys)
     else:
         if diff_head:
             commitmsg = f"[GT Checked] Staged Files: {diff_head}"
-            modtext = f"Please commit the staged files! You skipped {repo_data['diff_skipped']} files."
+            modtext = f"Please commit the staged files! You skipped {repo_data.get('diff_skipped')} files."
             write_repo_data(repo_data_path, repo_data)
             return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, group_name=group_name,
                                    name=name, email=email, commitmsg=commitmsg, modtext=modtext, custom_keys='', files_left="0")
-        if not repo_data['diff_list']:
+        if not repo_data.get('diff_list'):
             write_repo_data(repo_data_path, repo_data)
             return render_template("nofile.html")
         repo_data['diff_skipped'] = 0
@@ -273,7 +297,7 @@ def pop_idx(repo_data, lname, popidx):
     :param popidx: Index to pop
     :return:
     """
-    if len(repo_data[lname]) > popidx:
+    if len(repo_data.get(lname)) > popidx:
         repo_data[lname].pop(popidx)
     return
 
@@ -309,42 +333,42 @@ def edit(group_name, repo_path_hash):
     data = request.form  # .to_dict(flat=False)
     repo_data_path = get_repo_data_path(group_name, repo_path_hash)
     repo_data = get_repo_data(repo_data_path)
-    repo = get_repo(repo_data['path'])
+    repo = get_repo(repo_data.get('path'))
     # Check if mod files left
-    difflen = len(repo_data['diff_list'])
+    difflen = len(repo_data.get('diff_list'))
     repo_data['last_action'] = str(datetime.datetime.now())
-    if difflen <= repo_data['diff_skipped']:
+    if difflen <= repo_data.get('diff_skipped'):
          if data['selection'] == 'commit':
              repo.git.commit('-m', data['commitmsg'])
          repo_data['diff_skipped'] = 0
          write_repo_data(repo_data_path, repo_data)
          return gtcheck(group_name, repo_path_hash, repo, repo_data)
-    fname = Path(repo_data['path']).joinpath(repo_data['fpath'])
+    fname = Path(repo_data.get('path')).joinpath(repo_data.get('fpath'))
     modtext = data['modtext'].replace("\r\n", "\n")
     repo_data['vkeylang'] = data['vkeylang']
     repo_data['custom_keys'] = data['custom_keys'].split(' ')
     if data.get('undo', None):
-        repo.git.reset('HEAD', repo_data['undo_fpath'])
-        with open(repo_data['undo_fpath'], "w") as fout:
-            fout.write(repo_data['undo_value'])
+        repo.git.reset('HEAD', repo_data.get('undo_fpath'))
+        with open(repo_data.get('undo_fpath'), "w") as fout:
+            fout.write(repo_data.get('undo_value'))
             repo_data['diff_skipped'] += 1
     repo_data['undo_fpath'] = str(fname)
-    repo_data['undo_value'] = repo_data['modtext']
+    repo_data['undo_value'] = repo_data.get('modtext')
     if data['selection'] == 'commit':
-        if difflen - repo_data['diff_skipped'] != 0:
-            if repo_data['modtext'].replace("\r\n", "\n") != modtext or repo_data['modtype'] == "merge":
+        if difflen - repo_data.get('diff_skipped') != 0:
+            if repo_data.get('modtext').replace("\r\n", "\n") != modtext or repo_data.get('modtype') == "merge":
                 with open(fname, 'w') as fout:
                     fout.write(modtext)
             repo.git.add(str(fname), u=True)
         repo.git.commit('-m', data['commitmsg'])
     elif data['selection'] == 'stash':
-        if repo_data['modtype'] in ['new']:
+        if repo_data.get('modtype') in ['new']:
             repo.git.rm('-f', str(fname))
         else:
             repo.git.checkout('--', str(fname))
         repo_data['diff_overall'] -= 1
     elif data['selection'] == 'add':
-        if repo_data['modtext'].replace("\r\n", "\n") != modtext or repo_data['modtype'] == "merge":
+        if repo_data.get('modtext').replace("\r\n", "\n") != modtext or repo_data.get('modtype') == "merge":
             with open(fname, 'w') as fout:
                 fout.write(modtext)
         repo.git.add(str(fname), u=True)
@@ -354,7 +378,7 @@ def edit(group_name, repo_path_hash):
             repo_data['diff_skipped'] = 0
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, repo, repo_data)
-    pop_idx(repo_data, 'diff_list', repo_data['diff_skipped'] + repo_data['fileidx'])
+    pop_idx(repo_data, 'diff_list', repo_data.get('diff_skipped') + repo_data.get('fileidx'))
     if data.get('continue_skipped', None):
         repo_data['diff_skipped'] = 0
     write_repo_data(repo_data_path, repo_data)
@@ -370,7 +394,7 @@ def init(group_name, repo_path_hash):
     :return:
     """
     data = request.form  # .to_dict(flat=False)
-    repo_path = data['repo_path']
+    repo_path = data.get('repo_path', '')
     repo = get_repo(repo_path)
     repo_data_path = get_repo_data_path(group_name, repo_path_hash)
     set_git_credentials(repo, data.get('username', 'GTChecker'), data.get('email', ''))
@@ -379,16 +403,19 @@ def init(group_name, repo_path_hash):
                                  'email':  data.get('email', ''),
                                  'addcc': True if 'addCC' in data.keys() else False,
                                  'skipcc': True if 'skipCC' in data.keys() else False,
-                                 'custom_keys': data['custom_keys'].split(' '),
-                                 'regexnum': data['regexnum']})
+                                 'custom_keys': data.get('custom_keys', ['']).split(' '),
+                                 'regexnum': data.get('regexnum', ''),
+                                 'filter_all': data.get('filter_all', ''),
+                                 'filter_from': data.get('filter_from', ''),
+                                 'filter_to': data.get('filter_to', '')})
     if data.get('reset', 'off') == 'on':
         repo.git.reset()
     if data.get('checkout', 'off') == 'on' and data['new_branch'] != "":
         repo.git.checkout(data['branches'], b=data['new_branch'])
-    elif data['branches'] != str(repo.active_branch):
+    elif data.get('branches', 'main') != str(repo.active_branch):
         app.logger.warning(f"Branch was force checkout from {str(repo.active_branch)} to {data['branches']}")
         repo.git.reset()
-        repo.git.checkout('-f', data['branches'])
+        repo.git.checkout('-f', data.get('branches', 'main'))
     return gtcheck(group_name, repo_path_hash, repo)
 
 
@@ -465,9 +492,14 @@ def setup(group_name, repo_path_hash):
             f"You have {diff_head} staged file[s] in the {repo.active_branch} branch! "
             f"These files will be added to the next commit.")
     return render_template("setup.html", username=username, email=email,
-                           repo_path=data['repo_path'], group_name=group_name, repo_path_hash=repo_path_hash,
+                           repo_path=data.get('repo_path', ''), group_name=group_name,
+                           repo_path_hash=repo_path_hash,
                            active_branch=repo.active_branch, branches=repo.branches,
-                           regexnum=repo_data['regexnum'], custom_keys=' '.join(repo_data['custom_keys']))
+                           regexnum=repo_data.get('regexnum', "^(.*?)(\d+)(\D*)$"),
+                           custom_keys=' '.join(repo_data.get('custom_keys', [''])),
+                           filter_all=repo_data.get('filter_all', ''),
+                           filter_from=repo_data.get('filter_from', ''),
+                           filter_to=repo_data.get('filter_to', ''))
 
 
 @app.route("/", methods=['GET'])
@@ -482,7 +514,8 @@ def index():
         return render_template("setup.html", username=username, email=email, repo_path=app.config['repo_path'],
                                group_name="Single", repo_path_hash=hash_it(repo.working_dir),
                                 active_branch=repo.active_branch, branches=repo.branches,
-                               regexnum="^(.*?)(\d+)(\D*)$", custom_keys="")
+                               regexnum="^(.*?)(\d+)(\D*)$", custom_keys="",
+                               filter_all="", filter_from="", filter_to="")
     else:
         return render_template("index.html", grprepos=get_repo_data_paths())
 
@@ -606,6 +639,9 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                                'addcc': False,
                                'skipcc': True,
                                'regexnum': "^(.*?)(\d+)(\D*)$",
+                               'filter_all': '',
+                               'filter_from': '',
+                               'filter_to': '',
                                'diff_list': diff_list,
                                'diff_overall': len(diff_list),
                                'diff_skipped': 0,
