@@ -336,7 +336,7 @@ def edit(group_name, repo_path_hash):
     repo = get_repo(repo_data.get('path'))
     # Check if mod files left
     difflen = len(repo_data.get('diff_list'))
-    repo_data['last_action'] = str(datetime.datetime.now())
+    repo_data['last_action'] = f"{datetime.date.today()}"
     if difflen <= repo_data.get('diff_skipped'):
          if data['selection'] == 'commit':
              repo.git.commit('-m', data['commitmsg'])
@@ -400,20 +400,21 @@ def init(group_name, repo_path_hash):
     set_git_credentials(repo, data.get('username', 'GTChecker'), data.get('email', ''))
     logger(str(Path(LOG_DIR).joinpath(f"{repo_path_hash}_{repo.active_branch}.log".replace(' ', '_')).resolve()))
     update_repo_data(repo_data_path, {'username': data.get('username', 'GTChecker'),
-                                 'email':  data.get('email', ''),
-                                 'addcc': True if 'addCC' in data.keys() else False,
-                                 'skipcc': True if 'skipCC' in data.keys() else False,
-                                 'custom_keys': data.get('custom_keys', ['']).split(' '),
-                                 'regexnum': data.get('regexnum', ''),
-                                 'filter_all': data.get('filter_all', ''),
-                                 'filter_from': data.get('filter_from', ''),
-                                 'filter_to': data.get('filter_to', '')})
+                                      'email':  data.get('email', ''),
+                                      'addcc': True if 'addCC' in data.keys() else False,
+                                      'skipcc': True if 'skipCC' in data.keys() else False,
+                                      'custom_keys': data.get('custom_keys', ['']).split(' '),
+                                      'regexnum': data.get('regexnum', ''),
+                                      'filter_all': data.get('filter_all', ''),
+                                      'filter_from': data.get('filter_from', ''),
+                                      'filter_to': data.get('filter_to', '')})
     if data.get('reset', 'off') == 'on':
         repo.git.reset()
-    if data.get('checkout', 'off') == 'on' and data['new_branch'] != "":
-        repo.git.checkout(data['branches'], b=data['new_branch'])
-    elif data.get('branches', 'main') != str(repo.active_branch):
-        app.logger.warning(f"Branch was force checkout from {str(repo.active_branch)} to {data['branches']}")
+    if data.get('checkout', 'off') == 'on' and data.get('new_branch', '') != "":
+        repo.git.checkout(b=data.get('new_branch', 'main'))
+    elif data.get('branches', 'main') != repo.active_branch.name:
+        app.logger.warning(f"Branch was force checkout from {str(repo.active_branch.name)} "
+                           f"to {data.get('branches', 'main')}")
         repo.git.reset()
         repo.git.checkout('-f', data.get('branches', 'main'))
     return gtcheck(group_name, repo_path_hash, repo)
@@ -489,12 +490,13 @@ def setup(group_name, repo_path_hash):
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
     if diff_head != "":
         flash(
-            f"You have {diff_head} staged file[s] in the {repo.active_branch} branch! "
+            f"You have {diff_head} staged file[s] in the {repo.active_branch.name} branch! "
             f"These files will be added to the next commit.")
     return render_template("setup.html", username=username, email=email,
                            repo_path=data.get('repo_path', ''), group_name=group_name,
                            repo_path_hash=repo_path_hash,
-                           active_branch=repo.active_branch, branches=repo.branches,
+                           active_branch=repo.active_branch.name,
+                           branches=[branch.name for branch in repo.branches] if repo.branches != [] else [repo.active_branch.name],
                            regexnum=repo_data.get('regexnum', "^(.*?)(\d+)(\D*)$"),
                            custom_keys=' '.join(repo_data.get('custom_keys', [''])),
                            filter_all=repo_data.get('filter_all', ''),
@@ -625,10 +627,10 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                 else:
                     readme_path = str(Path(readme).resolve())
                 try:
-                    init_head = repo.head.commit
+                    init_head = repo.head.commit.hexsha
                 except ValueError:
                     app.logger.warning(f'The repo contains no head commit: {repo_path}')
-                    init_head = None
+                    init_head = ""
                 infotext = info
                 with open(repo_data_path,'w') as fout:
                     json.dump({'path': repo_path,

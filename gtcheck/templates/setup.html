@@ -49,10 +49,10 @@
     </div>
     <div>
         <label for="branches">Selected branch (keeps only untracked files, modified files get lost)</label>
-        <select name="branches" id="branches">
+        <select name="branches" id="branches" class="selectpicker form-control">
             {% for branch in branches %}
-            <option value="{{ branch.name }}" {% if branch.name== active_branch.name %} selected="selected" {% endif %}>
-                {{ branch.name }}
+            <option value="{{ branch }}" {% if branch == active_branch %} selected="selected" {% endif %}>
+                {{ branch }}
             </option>
             {% endfor %}
         </select>
