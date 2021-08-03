@@ -480,7 +480,7 @@ def setup(group_name, repo_path_hash):
     if 'reserve' in data.keys():
         current_dt = datetime.datetime.now()
         reserved_by = data.get('reserved_by', '') if len(data.get('reserved_by', '')) != 0 else "GTChecker"
-        update_repo_data(repo_data_path, {'reserved_since': str(current_dt), 'reserved_by': reserved_by})
+        update_repo_data(repo_data_path, {'reserved_since': f"{datetime.date.today()}", 'reserved_by': reserved_by})
     if 'reservation_cancel' in data.keys():
         update_repo_data(repo_data_path, {'reserved_since': '', 'reserved_by': ''})
         return index()
