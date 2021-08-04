@@ -73,7 +73,8 @@
                     <input type="text" id=repo_name2 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
                     <label for=repo_name2>Reserved by</label>
                 </div>
-                <button name="done" class="btn waves-effect waves-light" type="submit">Done!</button>
+                <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
+                <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button>
             {% endif %}
                 <label>Progress: {{ repo_data['diff_overall']-(repo_data['diff_list']|length) }}/{{ repo_data['diff_overall'] }}</label>
                 <label>Skipped: {{ repo_data['diff_skipped'] }}</label>

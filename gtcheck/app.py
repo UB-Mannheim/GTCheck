@@ -94,21 +94,6 @@ def surrounding_images(img, regex):
     return prev_img, post_img
 
 
-def get_repo(path):
-    """
-    Returns repo instance, if the subdirectory is provided it goes up to the base directory
-    :param path: Repopath
-    :return:
-    """
-    repo = None
-    try:
-       repo = Repo(path, search_parent_directories=True)
-    except InvalidGitRepositoryError:
-        app.logger.warning(f'Invalid gitrepository access: {path}')
-        pass
-    return repo
-
-
 def get_gitdifftext(orig, diff, repo):
     """
     Compares two strings via git hash-objects
@@ -477,14 +462,23 @@ def setup(group_name, repo_path_hash):
     repo_data_path = get_repo_data_path(group_name, repo_path_hash)
     repo_data = get_repo_data(repo_data_path)
     username, email = get_git_credentials(repo)
-    if 'reserve' in data.keys():
-        current_dt = datetime.datetime.now()
+    if data.get('reserve', None):
         reserved_by = data.get('reserved_by', '') if len(data.get('reserved_by', '')) != 0 else "GTChecker"
         update_repo_data(repo_data_path, {'reserved_since': f"{datetime.date.today()}", 'reserved_by': reserved_by})
-    if 'reservation_cancel' in data.keys():
+    if data.get('reservation_cancel', None):
         update_repo_data(repo_data_path, {'reserved_since': '', 'reserved_by': ''})
         return index()
-    elif 'done' in data.keys():
+    elif data.get('squash', None):
+        repo.git.reset('--soft', repo_data.get('init_head'))
+        difflist = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
+        repo.git.add(*difflist, u=True)
+        modtext = "The merged commits till start of checking the ground truth will be squashed into one."
+        return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash,
+                               group_name=group_name,
+                               name=repo_data.get('username'), email=repo_data.get('email'),
+                               commitmsg=f'[GT Checked] Added Files: {len(difflist)}', modtext=modtext, custom_keys='',
+                               files_left="0")
+    elif data.get('done', None):
         Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash + ".json").unlink()
         return index()
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
@@ -554,6 +548,21 @@ def logger(fname):
     if len(app.logger.handlers) > 1:
         app.logger.removeHandler(app.logger.handlers[1])
     app.logger.addHandler(file_handler)
+
+
+def get_repo(path):
+    """
+    Returns repo instance, if the subdirectory is provided it goes up to the base directory
+    :param path: Repopath
+    :return:
+    """
+    repo = None
+    try:
+       repo = Repo(path, search_parent_directories=True)
+    except InvalidGitRepositoryError:
+        app.logger.warning(f'Invalid gitrepository access: {path}')
+        pass
+    return repo
 
 
 def get_repo_data_paths():
