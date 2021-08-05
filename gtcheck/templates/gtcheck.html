@@ -7,6 +7,7 @@
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/gtcheck.css') }}">
 	<link rel="stylesheet" href="{{ url_for('static', filename='vkeys/css/keyboard-dark.min.css') }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/materialize+icons.css') }}"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.fontpicker.min.css') }}"/>
 
 	<!--Javascript files-->
 	<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
@@ -16,6 +17,7 @@
 	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/jquery.keyboard.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/jquery.keyboard.extension-typing.min.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('static', filename='vkeys/js/keyboard-layouts-combined.js') }}" charset="utf-8"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/jquery.fontpicker.min.js') }}"></script>
 	<script>
 	window.addEventListener("keyup", function(event) {
 		if (event.keyCode === 113) {
@@ -167,11 +169,14 @@
 </head>
 <body>
 	<div style="margin-left: 15px; margin-right: 15px;">
-		<h2 class="heading center">GT Check</h2>
+		<h2 class="heading center" id="topic">GT Check</h2>
 	</div>
 	<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
+
 		<input type="hidden"  id="custom_keys" name="custom_keys" value="{{ custom_keys }}" >
 		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group">
+		<label for="fonts">Font selection</label><br>
+		<input class="fonts" id="fonts" name="fonts">
 		<div id="switcher"></div>
 		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
 		<select class="browser-default form-control" name="vkeylang" style="width:40%;font-size:0.75rem" id="lang"></select>
@@ -192,6 +197,7 @@
 					On
 				</label>
 			</div>
+
 		</div>
 	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
@@ -211,8 +217,8 @@
 				<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
 				<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a>
 			</div>
-			<div class="diff-text" style="clear: both" >{{ difftext }}</div>
-		<div class="orig-text">{{ origtext }}</div>
+			<div id="difftext" class="diff-text" style="clear: both" >{{ difftext }}</div>
+		<div id ="origtext" class="orig-text">{{ origtext }}</div>
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
 		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
 	</div>
@@ -247,6 +253,29 @@
             </div>
 	</div>
 	</form>
+		<script>
+		$('input.fonts').fontpicker({
+		   variants: false,
+		   nrRecents: 5,
+		   localFontsUrl: 'fonts/',
+   		   localFonts: {"JuniusX-Regular": {
+      					"category": "serif",
+   						},
+   						"RobotoMono-Regular": {
+      					"category": "sans-serif",
+   						}},
+		}).on('change', function() {
+			var element = document.getElementById("keyboard");
+			element.style.fontFamily = this.value;
+			var element = document.getElementById("difftext");
+			element.style.fontFamily = this.value;
+			var element = document.getElementById("origtext");
+			element.style.fontFamily = this.value;
+		});
+	</script>
+	<script>
+		$('input.fonts').val('{{ font }}').trigger('change');
+	</script>
 	<script>
 		/* Code to get jQuery UI to work with jQuery 3.4+ ... */
 		$.isArray = function(a) {

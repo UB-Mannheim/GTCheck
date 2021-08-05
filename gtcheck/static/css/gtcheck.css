@@ -4,23 +4,53 @@ body {
 }
 /*	background-image: ; */
 
+@font-face {
+  font-family: 'JuniusXGTC';
+  src:  url('../fonts/JuniusVF.woff2')  format('woff2');
+}
+
+@font-face {
+    font-family: 'RobotoMonoGTC';
+    src: url('../fonts/RobotoMono-Regular.woff2') format('woff2');
+}
+
+
+
 img {
     height: auto;
     max-height:300px;
     max-width: 90%; /* you can use % */
 }
 
+h1 {
+	margin: 0;
+	font-family: 'RobotoMonoGTC';
+}
+
 h2 {
 	margin: 0;
+	font-family: 'RobotoMonoGTC';
 }
 
 h3 {
 	margin: 0;
 	margin-bottom: 5px;
+    font-family: 'RobotoMonoGTC';
+}
+
+h4 {
+	margin: 0;
+	font-family: 'RobotoMonoGTC';
+}
+
+h5 {
+	margin: 0;
+	font-family: 'RobotoMonoGTC';
 }
 
 .col-small{
     height: 30px;
+    font-family: 'RobotoMonoGTC';
 }
 
 textarea {
@@ -31,7 +61,7 @@ textarea {
 	-moz-box-shadow: none;
 	box-shadow: none;
 	height:auto;
-	font-family: 'Monospace', cursive;
+	font-family: 'RobotoMonoGTC';
 }
 
 .surr-image {
@@ -60,12 +90,12 @@ textarea {
 }
 
 .heading {
-	font-family: 'Monospace', cursive;
+	font-family: 'RobotoMonoGTC';
 	color: black;
 }
 
 .heading-left {
-	font-family: 'Monospace', cursive;
+	font-family: 'RobotoMonoGTC';
 	color: white;
 	align: left;
 }
@@ -83,7 +113,7 @@ textarea {
 	background-color: white;
 	padding: 5px;
 	font-size: 1.5rem;
-    font-family: 'Monospace', cursive;
+    font-family: 'RobotoMonoGTC';
 	text-align: left;
 }
 
@@ -92,7 +122,7 @@ textarea {
 	padding: 5px;
 	background-color: white;
 	font-size: 2.5rem;
-    font-family: 'monospace', cursive;
+    font-family: 'RobotoMonoGTC';
 }
 
 .orig-text {
@@ -100,7 +130,7 @@ textarea {
 	padding: 5px;
 	color: grey;
 	font-size: 2.5rem;
-    font-family: 'Monospace', cursive;
+    font-family: 'RobotoMonoGTC';
 }
 
 .mod-text {
@@ -110,7 +140,7 @@ textarea {
 	text-align:justify;
 	background-color: white;
 	font-size: 2.5rem;
-    font-family: 'Monospace', cursive;
+    font-family: 'RobotoMonoGTC';
 }
 
 
@@ -122,7 +152,7 @@ textarea {
 	background-color: rgba(0, 0, 0, 0.1);
 	font-size: 1rem;
 	color: black;
-    font-family: 'Monospace', cursive;
+    font-family: 'RobotoMonoGTC';
 }
 
 

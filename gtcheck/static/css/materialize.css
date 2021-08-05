@@ -4422,32 +4422,32 @@ nav .input-field label.active i {
 }
 
 @font-face {
-  font-family: "RobotoMono";
-  src: local(Roboto Thin), url("../fonts/robotomono/RobotoMono-Thin.ttf") format("ttf"), url("../fonts/robotomono/RobotoMono-Thin.ttf") format("ttf");
+  font-family: "RobotoMonoGTC";
+  src: local(Roboto Thin), url("../fonts/RobotoMono-Thin.woff2") format("woff2"), url("../fonts/RobotoMono-Thin.woff2") format("woff2");
   font-weight: 100;
 }
 
 @font-face {
-  font-family: "RobotoMono";
-  src: local(Roboto Light), url("../fonts/robotomono/RobotoMono-Light.ttf") format("ttf"), url("../fonts/robotomono/RobotoMono-Light.ttf") format("ttf");
+  font-family: "RobotoMonoGTC";
+  src: local(Roboto Light), url("../fonts/RobotoMono-Light.woff2") format("woff2"), url("../fonts/RobotoMono-Light.woff2") format("woff2");
   font-weight: 300;
 }
 
 @font-face {
-  font-family: "RobotoMono";
-  src: local(Roboto Regular), url("../fonts/robotomono/RobotoMono-Regular.ttf") format("ttf"), url("../fonts/robotomono/RobotoMono-Regular.ttf") format("ttf");
+  font-family: "RobotoMonoGTC";
+  src: local(Roboto Regular), url("../fonts/RobotoMono-Regular.woff2") format("woff2"), url("../fonts/RobotoMono-Regular.woff2") format("woff2");
   font-weight: 400;
 }
 
 @font-face {
-  font-family: "RobotoMono";
-  src: local(Roboto Medium), url("../fonts/robotomono/RobotoMono-Medium.ttf") format("ttf"), url("../fonts/robotomono/RobotoMono-Medium.ttf") format("ttf");
+  font-family: "RobotoMonoGTC";
+  src: local(Roboto Medium), url("../fonts/RobotoMono-Medium.woff2") format("woff2"), url("../fonts/RobotoMono-Medium.woff2") format("woff2");
   font-weight: 500;
 }
 
 @font-face {
-  font-family: "RobotoMono";
-  src: local(Roboto Bold), url("../fonts/robotomono/RobotoMono-Bold.ttf") format("ttf"), url("../fonts/robotomono/RobotoMono-Bold.ttf") format("ttf");
+  font-family: "RobotoMonoGTC";
+  src: local(Roboto Bold), url("../fonts/RobotoMono-Bold.woff2") format("woff2"), url("../fonts/RobotoMono-Bold.woff2") format("woff2");
   font-weight: 700;
 }
 
@@ -4457,7 +4457,7 @@ a {
 
 html {
   line-height: 1.5;
-  font-family: "RobotoMono", sans-serif;
+  font-family: "RobotoMonoGTC", sans-serif;
   font-weight: normal;
   color: rgba(0, 0, 0, 0.87);
 }
