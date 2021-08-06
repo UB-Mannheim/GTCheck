@@ -38,11 +38,12 @@
 		  }
 		});
 	</script>
-	<script>
+<!--	TODO: Check if this function is necessary?!
+		<script>
   		$(document).ready(function(){
     		$('select').formSelect();
  	 	});
-	</script>
+	</script>-->
 	<script>
 	function insertText(text)
 	{
@@ -257,13 +258,18 @@
 		$('input.fonts').fontpicker({
 		   variants: false,
 		   nrRecents: 5,
-		   localFontsUrl: 'fonts/',
-   		   localFonts: {"JuniusX-Regular": {
+		   debug: true,
+   		   localFonts: {
+   		   		"RobotoMonoGTC": {
+   		   				"category": "monospace",
+   						},
+   		   		"JuniusXGTC": {
       					"category": "serif",
    						},
-   						"RobotoMono-Regular": {
-      					"category": "sans-serif",
-   						}},
+   				"UbuntuMonoGTC": {
+      					"category": "serif",
+   						},
+   						},
 		}).on('change', function() {
 			var element = document.getElementById("keyboard");
 			element.style.fontFamily = this.value;

@@ -14,7 +14,10 @@ body {
     src: url('../fonts/RobotoMono-Regular.woff2') format('woff2');
 }
 
-
+@font-face {
+    font-family: 'UbuntuMonoGTC';
+    src: url('../fonts/Ubuntu-Mono.woff2') format('woff2');
+}
 
 img {
     height: auto;
