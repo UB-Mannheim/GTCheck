@@ -74,7 +74,7 @@
 	<script>
 		var layouts = [
 			// 'title , file name , layout name'
-			"Custom Keys, gtc, custom-keys",
+			"Custom Keys, gtc, custom",
 			"Combining Diacritical Marks (GTCheck), cdm, combining-diacritical-marks",
 			"Fractions & Enclosed Number (GTCheck), fen, fractions-enclosed-numbers",
 			"Spacing & General Punctation (GTCheck), sgp, spacing-general-punctation",
@@ -211,6 +211,8 @@
 					<i class="material-icons" id="vkey-icon-remove">indeterminate_check_box</i></a>
 				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-10%;float:right" type="button">
 					<i class="material-icons" id="vkey-icon-add">add_box</i></a>
+				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-10%;float:right" type="button">
+					<i class="material-icons" id="vkey-custom-icon">keyboard</i></a>
 				</div>
 			<div class="fixed-action-btn"  id="submit-group">
 				<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
@@ -300,7 +302,19 @@
 		}
 
 		$('#vkey-icon').click(function(){
-			$('#keyboard').getkeyboard().reveal();
+			var lang = document.getElementById('lang')
+			console.log(lang)
+			console.log(lang.value)
+			var kb = $('#keyboard').getkeyboard();
+			kb.options.layout = lang.value;
+			kb.reveal();
+		})
+
+		$('#vkey-custom-icon').click(function(){
+			var kb = $('#keyboard').getkeyboard();
+			kb.options.layout = "custom";
+			kb.redraw();
+			kb.reveal();
 		});
 
 		var customkeys = {{ custom_keys|safe }};
@@ -308,7 +322,6 @@
 
 		$('#vkey-icon-add').click(function(){
 			var $textbox = $("#keyboard");
-			var kb = $('#keyboard').getkeyboard();
     		var textSel  = $textbox.caret().text;
     		if (textSel != '' &&  textSel.indexOf(' ') == -1  && !customkeys.includes(textSel)) {
 				customkeys.push(textSel);
@@ -316,6 +329,7 @@
 				kb.options.customLayout= {
 						'normal': customkeys,
 					};
+				console.log(customkeys)
 				document.getElementById("custom_keys").value = customkeys.join(' ');
 				}
 		});
