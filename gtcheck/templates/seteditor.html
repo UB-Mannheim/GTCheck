@@ -51,7 +51,7 @@
         <h4>Duplicate set for multiple keying</h4>
             <div class="row">
                 <div class="input-field col s3">
-                    <input type="number" min="0" oninput="validity.valid||(value='');"  pattern="[0-9]" id="duplications" name="duplications" value="">
+                    <input type="number" min="0" oninput="validity.valid||(value='');"  pattern="[0-9]" id="duplications" name="duplications" value="0">
                     <label for="duplications">Number of duplications</label>
                 </div>
             </div>
@@ -64,7 +64,7 @@
         <div class="row">
             <div class="input-field col s3">
                 <label for="splits">Amount</label>
-                <input type="number" min="0" oninput="validity.valid||(value='');" pattern="[0-9]" id="splits" value="" name="splits">
+                <input type="number" min="0" oninput="validity.valid||(value='');" pattern="[0-9]" id="splits" value="0" name="splits">
             </div>
         </div>
             <button class="btn waves-effect waves-light" type="submit" name="confirm">OK</button>
