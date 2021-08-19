@@ -695,7 +695,7 @@ def add_compare_to_base_repo(base_repo, compare_repo_path, commit_staged=False):
         compare_repo.git.commit('-m', f"GTCheck: Commit {len(compare_repo.index.diff('HEAD'))} staged files.")
     if not isinstance(base_repo, Repo):
         base_repo = Repo(base_repo)
-    #base_repo.create_remote(compare_repo_path.name, url=compare_repo_path)
+    base_repo.create_remote(compare_repo_path.name, url=compare_repo_path)
     base_repo.remote(compare_repo_path.name).fetch('--tags')
     try:
         base_repo.git.merge('--allow-unrelated-histories', '-X', 'theirs',
