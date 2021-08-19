@@ -172,7 +172,7 @@
 	<div style="margin-left: 15px; margin-right: 15px;">
 		<h2 class="heading center" id="topic">GT Check</h2>
 	</div>
-	<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
+	<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash, subrepo=subrepo) }}" method="POST" enctype="multipart/form-data">
 
 		<input type="hidden"  id="custom_keys" name="custom_keys" value="{{ custom_keys }}" >
 		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group">

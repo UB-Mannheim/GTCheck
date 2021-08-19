@@ -34,59 +34,157 @@
 <div style="margin-left: 15px; margin-right: 15px;">
     <h5 class="heading center">Groups</h5>
 </div>
-<ul class="collapsible">
-{% for group_name, repos in grprepos.items() %}
+<ul class="collapsible" data-collapsible="accordion">
+{% for group_name, repos in grp_repo_data.items() %}
     <li>
       <div class="collapsible-header">{{ group_name }}</div>
-        {% for repo_path_hash, repo_data in repos.items() %}
         <div class="collapsible-body">
-        <form id="gtcheck-form" action="{{ url_for('setup', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
-            <h5>{{ repo_data['name'] if repo_data['name'] != "" else repo_data['path'] }}
-                {% if repo_data['readme'] != "": %}
-                    <button type="button" class="waves-effect waves-teal btn-flat" onclick="window.location.href='{{ url_for('readme', readme_file=repo_data['readme']) }}';">Readme</button>
-                {% else %}
-                     <button type="button" class="waves-effect waves-teal btn-flat disabled" onclick="window.location.href='{{ url_for('readme', readme_file=repo_data['readme']) }}';">Readme</button>
-                {% endif %}
-            </h5>
-            <label>Description: {{ repo_data["info"] }}</label><br>
-            <input type="hidden" value="{{ repo_data['path'] }}" name="repo_path">
-            {% if repo_data['reserved_by'] == "": %}
-                <div class="input-field col s6">
-                    <input type="text" id=repo_name0 value="{{ repo }}" name="reserved_by">
-                    <label for=repo_name0>Editorname</label>
-                </div>
-                <button name="reserve" class="btn waves-effect waves-light" type="submit">Reserve</button>
-                <button class="btn waves-effect waves-light" type="submit" disabled>Start</button>
-                <button class="btn waves-effect waves-light" type="submit" disabled>Cancel reservation</button>
-            {% elif repo_data['diff_overall']-(repo_data['diff_list']|length)  != repo_data['diff_overall'] %}
-                <div class="input-field col s6">
-                    <input type="text" id=repo_name1 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
-                    <label for=repo_name1>Reserved by</label>
-                </div>
-                <button class="btn waves-effect waves-light" type="submit" disabled>Reserve</button>
-                <button name="start" class="btn waves-effect waves-light" type="submit" >Start</button>
-                <button name="reservation_cancel" class="btn waves-effect waves-light" type="submit" >Cancel reservation</button>
-                <label>Reserved since: {{ repo_data['reserved_since'] }}</label>
-                <label>Last action: {{ repo_data['last_action'] }}</label>
+        {% for repo_path_hash, repo_data in repos.items() %}
+            {% if repo_path_hash not in sub_repo_data.keys() %}
+                <form id="gtcheck-form" action="{{ url_for('setup', group_name=group_name, repo_path_hash=repo_path_hash, subrepo='main') }}" method="POST" enctype="multipart/form-data">
+                    <h5>{{ repo_data['name'] if repo_data['name'] != "" else repo_data['path'] }}
+                        {% if repo_data['readme'] != "": %}
+                            <button type="button" class="waves-effect waves-teal btn-flat" onclick="window.location.href='{{ url_for('show_readme', readme_file=repo_data['readme']) }}';">Readme</button>
+                        {% else %}
+                             <button type="button" class="waves-effect waves-teal btn-flat disabled" onclick="window.location.href='{{ url_for('show_readme', readme_file=repo_data['readme']) }}';">Readme</button>
+                        {% endif %}
+                    </h5>
+                    <label>Description: {{ repo_data["info"] }}</label><br>
+                    <input type="hidden" value="{{ repo_data['path'] }}" name="repo_path">
+                    {% if repo_data['reserved_by'] == "": %}
+                        <div class="input-field col s6">
+                            <input type="text" id=repo_name0 value="{{ username }}" name="reserved_by">
+                            <label for=repo_name0>Editorname</label>
+                        </div>
+                        <button name="reserve" class="btn waves-effect waves-light" type="submit">Reserve</button>
+                        <button class="btn waves-effect waves-light" type="submit" disabled>Continue</button>
+                        <button class="btn waves-effect waves-light" type="submit" disabled>Cancel reservation</button>
+                         {% if activate_edit_gtset %}
+                        <button name="edit_gtset" class="btn waves-effect waves-light" type="submit">Edit GT-Set</button>
+                        {%  endif %}<br>
+                    {% elif  repo_data['diff_overall']-(repo_data['diff_list']|length) != repo_data['diff_overall'] %}
+                        <div class="input-field col s6">
+                            <input type="text" id=repo_name1 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
+                            <label for=repo_name1>Reserved by</label>
+                        </div>
+                        <button class="btn waves-effect waves-light" type="submit" disabled>Reserve</button>
+                        <button name="start" class="btn waves-effect waves-light" type="submit" >Continue</button>
+                        <button name="reservation_cancel" class="btn waves-effect waves-light" type="submit" >Cancel reservation</button>
+                        {% if activate_edit_gtset %}
+                        <button name="edit_gtset" class="btn waves-effect waves-light" type="submit">Edit GT-Set</button>
+                        {%  endif %}<br>
+                        <label>Reserved since: {{ repo_data['reserved_since'] }}</label>
+                        <label>Last action: {{ repo_data['last_action'] }}</label>
+                    {% else %}
+                        <div class="input-field col s6">
+                            <input type="text" id=repo_name2 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
+                            <label for=repo_name2>Reserved by</label>
+                        </div>
+                        <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
+                        <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button><br>
+                    {% endif %}
+                        <label>Progress: {{ repo_data['diff_overall']-(repo_data['diff_list']|length) }}/{{ repo_data['diff_overall'] }}</label>
+                        <label>Skipped: {{ repo_data['diff_skipped'] }}</label>
+                        {% if repo_data['diff_overall'] != 0 %}
+                            <div class="progress blue lighten-4 tooltipped" data-position="top" data-tooltip="Progress: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }} %">
+                                <span>Progress</span>
+                                <div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
+                            </div>
+                        {% endif %}
+                </form>
             {% else %}
-                <div class="input-field col s6">
-                    <input type="text" id=repo_name2 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
-                    <label for=repo_name2>Reserved by</label>
+            <form id="sub-main-gtcheck-form" action="{{ url_for('setup', group_name=group_name, repo_path_hash=repo_path_hash, subrepo='main') }}" method="POST" enctype="multipart/form-data">
+                    <h5>{{ repo_data['name'] if repo_data['name'] != "" else repo_data['path'] }}
+                        {% if repo_data['readme'] != "": %}
+                            <button type="button" class="waves-effect waves-teal btn-flat" onclick="window.location.href='{{ url_for('show_readme', readme_file=repo_data['readme']) }}';">Readme</button>
+                        {% else %}
+                             <button type="button" class="waves-effect waves-teal btn-flat disabled" onclick="window.location.href='{{ url_for('show_readme', readme_file=repo_data['readme']) }}';">Readme</button>
+                        {% endif %}
+                    </h5>
+                    <label>Description: {{ repo_data["info"] }}</label><br>
+                    <input type="hidden" value="{{ repo_data['path'] }}" name="repo_path">
+                    <button name="reserve" class="btn waves-effect waves-light" type="submit" disabled>Reserve</button>
+                    <button class="btn waves-effect waves-light" type="submit" disabled>Continue</button>
+                    <button class="btn waves-effect waves-light" type="submit" disabled>Cancel reservation</button>
+                    {% if activate_edit_gtset %}
+                        <button name="edit_gtset" class="btn waves-effect waves-light" type="submit">Edit GT-Set</button>
+                        <button name="edit_subsets" class="btn waves-effect waves-light" type="submit">Edit Subsets</button>
+                    {% endif %}
+                <br>
+            </form>
+            <div style="padding:10px">
+            <ul class="collapsible" data-collapsible="accordion">
+                <li>
+            <div class="collapsible-header">Subsets for {{ repo_data['name'] if repo_data['name'] != "" else repo_data['path'] }}</div>
+                {% for duplication, sub_repo_part_data in sub_repo_data[repo_path_hash].items() %}
+                    <div class="collapsible-body">
+                        <div style="padding:10px">
+                             <ul class="collapsible" data-collapsible="accordion">
+                                 <li>
+                                <div class="collapsible-header">{{ duplication.replace('_', ' ').capitalize() }}</div>
+                                {% for part, sub_repo_data in sub_repo_part_data.items() %}
+                                    <div class="collapsible-body">
+                                <form id="sub-gtcheck-form" action="{{ url_for('setup', group_name=group_name, repo_path_hash=repo_path_hash, subrepo=duplication+'_'+part) }}" method="POST" enctype="multipart/form-data">
+                                <h5>{{ sub_repo_data['name'] if sub_repo_data['name'] != "" else sub_repo_data['path'] }}
+                                    {% if sub_repo_data['readme'] != "": %}
+                                <button type="button" class="waves-effect waves-teal btn-flat" onclick="window.location.href='{{ url_for('show_readme', readme_file=sub_repo_data['readme']) }}';">Readme</button>
+                                {% else %}
+                                 <button type="button" class="waves-effect waves-teal btn-flat disabled" onclick="window.location.href='{{ url_for('show_readme', readme_file=sub_repo_data['readme']) }}';">Readme</button>
+                                {% endif %}
+                                </h5>
+                            <label>Description: {{ sub_repo_data["info"] }}</label><br>
+                            <input type="hidden" value="{{ sub_repo_data['path'] }}" name="repo_path">
+                            {% if sub_repo_data['reserved_by'] == "": %}
+                                <div class="input-field col s6">
+                                    <input type="text" id=subrepo_name0 value="{{ username }}" name="reserved_by">
+                                    <label for=subrepo_name0>Editorname</label>
+                                </div>
+                                <button name="reserve" class="btn waves-effect waves-light" type="submit">Reserve</button>
+                                <button class="btn waves-effect waves-light" type="submit" disabled>Continue</button>
+                                <button class="btn waves-effect waves-light" type="submit" disabled>Cancel reservation</button>
+                            {% elif sub_repo_data['diff_overall']-(sub_repo_data['diff_list']|length)  != sub_repo_data['diff_overall'] %}
+                                <div class="input-field col s6">
+                                    <input type="text" id=subrepo_name1 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
+                                    <label for=subrepo_name1>Reserved by</label>
+                                </div>
+                                <button class="btn waves-effect waves-light" type="submit" disabled>Reserve</button>
+                                <button name="start" class="btn waves-effect waves-light" type="submit" >Continue</button>
+                                <button name="reservation_cancel" class="btn waves-effect waves-light" type="submit" >Cancel reservation</button><br>
+                                <label>Reserved since: {{ sub_repo_data['reserved_since'] }}</label>
+                                <label>Last action: {{ sub_repo_data['last_action'] }}</label>
+                            {% else %}
+                                <div class="input-field col s6">
+                                    <input type="text" id=subrepo_name2 value="{{ sub_repo_data['reserved_by'] }}" name="reserved_by" readonly>
+                                    <label for=subrepo_name2>Reserved by</label>
+                                </div>
+                                <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
+                                <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button><br>
+                            {% endif %}
+                                <label>Progress: {{ sub_repo_data['diff_overall']-(sub_repo_data['diff_list']|length) }}/{{ sub_repo_data['diff_overall'] }}</label>
+                                <label>Skipped: {{ sub_repo_data['diff_skipped'] }}</label>
+                                    {% if sub_repo_data['diff_overall'] != 0 %}
+                               <div class="progress blue lighten-4 tooltipped" data-position="top" data-tooltip="Progress: {{ ((sub_repo_data['diff_overall']-(sub_repo_data['diff_list']|length))*100//sub_repo_data['diff_overall']) }} %">
+                                    <span>Progress</span>
+                                    <div class="determinate blue" style="width: {{ ((sub_repo_data['diff_overall']-(sub_repo_data['diff_list']|length))*100//sub_repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
+                                </div>
+                                    {% endif %}
+                        </form>
+                            </div>
+            {% endfor %}
+                    </li>
+                </ul>
                 </div>
-                <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
-                <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button>
+                    </div>
+             {% endfor %}
+                </li>
+                </ul>
+                </div>
             {% endif %}
-                <label>Progress: {{ repo_data['diff_overall']-(repo_data['diff_list']|length) }}/{{ repo_data['diff_overall'] }}</label>
-                <label>Skipped: {{ repo_data['diff_skipped'] }}</label>
-                <div class="progress blue lighten-4 tooltipped" data-position="top" data-tooltip="Progress: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }} %">
-					<span>Progress</span>
-					<div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
-				</div>
-        </form>
-    </div>
         {% endfor %}
+        </div>
     </li>
 {% endfor %}
+
 </ul>
 
 </body>

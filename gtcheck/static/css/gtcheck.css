@@ -51,6 +51,11 @@ h5 {
 	font-family: 'RobotoMonoGTC';
 }
 
+h6 {
+	margin: 0;
+	font-family: 'RobotoMonoGTC';
+}
+
 .col-small{
     height: 30px;
     font-family: 'RobotoMonoGTC';

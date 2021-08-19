@@ -18,7 +18,7 @@
 
 <div class="container">
     <h4>Done! But there are still skipped files, please resolve these open cases.</h4>
-    <form id="gtcheckedit-form" action="{{ url_for('gtcheck', repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
+    <form id="gtcheckedit-form" action="{{ url_for('gtcheck', repo_path_hash=repo_path_hash, subrepo=subrepo) }}" method="POST" enctype="multipart/form-data">
         <div class="fixed-action-btn"  id="submit-group">
 				<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">Resolve skipped files!</button></a>
 			</div>

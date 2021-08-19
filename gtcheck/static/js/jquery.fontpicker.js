@@ -5391,10 +5391,6 @@
 
 						case 'local':
 							var hasFontAPI = 'fonts' in document && 'check' in document.fonts;
-							if (!hasFontAPI || !document.fonts.check('11pt ' + font)) {
-								this.options.debug && console.log('Loading local font ' + font);
-								$('head').append("<style> @font-face { font-family:'" + font + "'; src:local('" + font + "'), url('" + this.options.localFontsUrl + font + ".woff') format('woff'); } </style>");
-							}
 							break;
 					}
 				},
