@@ -511,7 +511,7 @@ def index():
     if app.config['SINGLE']:
         repo = get_repo(app.config['REPO_PATH'])
         username, email = get_git_credentials(repo)
-        return render_template("setup.html", username=username, email=email, repo_path=app.config['repo_path'],
+        return render_template("setup.html", username=username, email=email, repo_path=app.config['REPO_PATH'],
                                group_name="Single", repo_path_hash=hash_it(repo.working_dir),
                                 active_branch=repo.active_branch, branches=repo.branches,
                                regexnum="^(.*?)(\d+)(\D*)$", custom_keys="",
