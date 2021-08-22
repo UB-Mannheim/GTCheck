@@ -141,7 +141,7 @@ def get_difftext(origtext, item, folder, repo):
         try:
             difftext = "".join(item.diff.decode('utf-8').split("\n")[1:])
         except UnicodeDecodeError as ex:
-            # The UnicodeDecodeError mostly appears if the orignal character is an combination of unicode symbols
+            # The UnicodeDecodeError mostly appears if the original character is a combination of unicode symbols
             # e.g. ä -> e+diacritic_mark and the modified character only differs in one and not all parts e.g. ö.
             app.logger.warning(f"File:{item.a_path} Warning the diff text could not be decoded! Error:{ex}")
             try:
@@ -303,7 +303,7 @@ def pop_idx(repo_data, lname, popidx):
 
 
 def set_git_credentials(repo, username, email, level='repository'):
-    """ Set the git credentials name and email adress."""
+    """ Set the git credentials name and email address."""
     try:
         if Path(repo.git_dir).joinpath('config.lock').exists():
             Path(repo.git_dir).joinpath('config.lock').unlink()
@@ -314,7 +314,7 @@ def set_git_credentials(repo, username, email, level='repository'):
 
 
 def get_git_credentials(repo, level='repository'):
-    """ Return the git credentials name and email adress."""
+    """ Return the git credentials name and email address."""
     username, email = "", ""
     try:
         username = repo.config_reader().get_value(level, 'name')

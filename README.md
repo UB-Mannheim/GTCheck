@@ -39,7 +39,7 @@ cd GTCheck
     gtcheck path/to/repo
 
 ### Setup page
-In the first page you can set up your git credentials and select the branch or create a new branch for committing the modfications.
+In the first page you can set up your git credentials and select the branch or create a new branch for committing the modifications.
 ![Setup page](docs/images/setuppage.png?raw=true "Setup page")
 
 ### GTCheck page
