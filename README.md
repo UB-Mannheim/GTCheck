@@ -27,16 +27,16 @@ cd GTCheck
 
 ### 3. Installation into a Python Virtual Environment
 
-    $ python3 -m venv venv
-    $ source venv/bin/activate
-    $ pip install -r requirements.txt
-    $ python setup.py install
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    python setup.py install
 
 ## Process steps
 
 ### Start the process
 
-    $ gtcheck path/to/repo
+    gtcheck path/to/repo
 
 ### Setup page
 In the first page you can set up your git credentials and select the branch or create a new branch for committing the modfications.
