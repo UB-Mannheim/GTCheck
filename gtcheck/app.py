@@ -589,7 +589,7 @@ def update_repo_data(repo_data_path, key_vals):
 def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
     repogroup_dir = Path(DATA_DIR).joinpath(group_name)
     if not repogroup_dir.exists():
-        repogroup_dir.mkdir()
+        repogroup_dir.mkdir(parents=True)
     for repo_path in repo_paths:
         repo = get_repo(repo_path)
         if repo:
