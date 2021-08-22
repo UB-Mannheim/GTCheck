@@ -21,7 +21,7 @@ import markdown
 from flask import Flask, render_template, request, Markup, flash
 from git import Repo, InvalidGitRepositoryError
 
-from config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR
+from .config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR
 
 app = Flask('run') #app = Flask(__name__) throws error at the moment
 
