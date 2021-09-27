@@ -215,7 +215,7 @@
 		<div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
 	</div>
 		<input type="hidden"  id="custom_keys" name="custom_keys" value="{{ custom_keys }}" >
-		<div class="fixed-action-btn" style="height: calc(100% - 110px);right:-12%" id="setting-group">
+		<div class="fixed-action-btn" style="height: calc(100% - 110px);right:-12%; width: 21%" id="setting-group">
 			<label for="fonts">Font selection</label><br>
 			<input class="fonts" id="fonts" name="fonts">
 			<div id="switcher"></div>
@@ -259,10 +259,10 @@
 		</a>
 		</div>
 	<div class="fixed-action-btn"  id="submit-group-main">
-		<a href="{{ add }}" target="blank"><button id="add!" class='btn' name="selection" value="add">add!</button></a>
-		<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn' name="selection" value="commit">commit!</button></a>
-		<a href="{{ skip }}" target="blank"><button id="skip!" class='btn' name="selection" value="skip">skip!</button></a>
-		<a href="{{ stash }}" target="blank"><button id="stash!" class='btn' name="selection" value="stash">stash!</button></a>
+		<a href="{{ add }}" target="blank"><button id="add!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Add this line to the next commit!" name="selection" value="add">add!</button></a>
+		<a href="{{ commit }}" target="blank"><button  id="commit!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Commit this and all added lines!" name="selection" value="commit">commit!</button></a>
+		<a href="{{ skip }}" target="blank"><button id="skip!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Skip this line for now!" name="selection" value="skip">skip!</button></a>
+		<a href="{{ stash }}" target="blank"><button id="stash!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Stash the modifications of this line!" name="selection" value="stash">stash!</button></a>
 	</div>
 
 	</form>
