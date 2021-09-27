@@ -170,6 +170,10 @@ line-span{
   height:1em;
   display:inline-block;
 }
+
+.navbar-wrapper {
+ line-height:100px important;
+}
 /* Place the navbar at the bottom of the page, and make it stick */
 .navbar {
   background-color: #333;

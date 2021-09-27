@@ -138,6 +138,110 @@ def get_difftext(origtext, item, folder, repo):
     return difftext
 
 
+class GTDiffObject(object):
+
+    def __init__(self, repo, repo_path, filename, add_all=False):
+        self.repo = repo
+        self.repo_path = repo_path
+        self.filename = filename
+        self.fpath = self.repo_path.joinpath(filename)
+        self.item = None
+        self.origtext = ''
+        self.difftext = ''
+        self.modtext = ''
+        self.modtype = ''
+        self.diffcolored = ''
+        self.__diff__(add_all)
+
+
+    def __diff__(self, add_all):
+        self.item = self.repo.index.diff(None, paths=[self.filename], create_patch=True, word_diff_regex='.')
+        # TODO: Check if this is necessary
+        if not self.item:
+            self.item = self.repo.index.diff('HEAD', paths=[self.filename], create_patch=True, word_diff_regex='.')
+        if not self.item and add_all:
+            self.path = self.filename
+            self.origtext = ""
+            self.difftext = open(Path(self.repo.working_dir).joinpath(self.filename), 'r').read()
+            self.modtext = self.difftext
+            self.modtype = "new"
+            self.diffcolored = "<span style='color:green'>The file gets added " \
+                          "when committed and deleted when stashed!</span>"
+        else:
+            if self.item:
+                self.item = self.item[0]
+            else:
+                #self.item = None
+                self.repo.git.add('-A', self.filename)
+                self.item = self.repo.index.diff('HEAD', paths=[self.filename])[0]
+            if not self.item.a_blob and not self.item.b_blob:
+                self.item = None
+            else:
+                self.get_modtext()
+
+    def get_modtext(self):
+        self.modtype = self.repo.git.status('--porcelain', self.filename).split(' ')[0]
+        try:
+            self.origtext = self.item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
+            self.path = self.item.a_path
+        except:
+            self.origtext = ""
+            self.path = self.item.b_path
+        self.mergetext = []
+        if self.modtype == "A":
+            if self.origtext != "":
+                self.modtext = self.origtext
+                self.origtext = ""
+            self.modtype = "new"
+            self.diffcolored = "<span style='color:green'>This untracked file gets added " \
+                          "when committed and deleted when stashed!</span>"
+            return
+        elif self.modtype == "D":
+            if self.modtext != "":
+                self.modtext = self.origtext
+                self.origtext = ""
+            self.modtype = "del"
+            self.modtext = ""
+            self.diffcolored = "<span style='color:red'>This file gets deleted " \
+                          "when committed and restored when stashed!</span>"
+            return
+        self.difftext = get_difftext(self.origtext, self.item, self.repo_path, self.repo)
+        self.diffcolored = color_diffs(self.difftext)
+        if self.modtype == "M":
+            self.modtype = "merge"
+            self.modtext = self.mergetext[1]
+        else:
+            self.modtext = self.repo_path.absolute().joinpath(self.item.b_path).open().read().lstrip(" ")
+
+    def diff_only_in_cc(self):
+        return self.origtext.strip() == self.modtext.strip() and self.origtext.strip() != ""
+
+    def validate_filter(self, filter_all, filter_from, filter_to):
+        # Apply filter options
+        if filter_all + filter_from + filter_to != '':
+            if filter_all != '':
+                if not (re.search(rf"{filter_all}", self.origtext) or
+                        re.search(rf"{filter_all}", self.modtext)):
+                   return True
+            if filter_from + filter_to != '':
+                origdiff, moddiff = get_diffs(self.difftext)
+                if not (re.search(rf"{filter_from}", origdiff) and
+                        re.search(rf"{filter_to}", moddiff)):
+                   return True
+        return False
+
+    def mods(self):
+        return modifications(self.difftext)
+
+def from_list_to_list(repo_data, from_list='diff_list', to_list='skipped', index=0, all=False):
+    if all:
+        repo_data[to_list] = repo_data[from_list]+repo_data[to_list]
+        repo_data[from_list] = []
+    else:
+        repo_data[to_list].append(repo_data[from_list][index])
+        repo_data[from_list].pop(index)
+    return
+
 @app.route('/gtcheck/edit/<group_name>/<repo_path_hash>/<subrepo>', methods=['GET', 'POST'])
 def gtcheck(group_name, repo_path_hash, subrepo, repo=None, repo_data=None):
     """
@@ -150,111 +254,55 @@ def gtcheck(group_name, repo_path_hash, subrepo, repo=None, repo_data=None):
     if repo is None:
         repo = get_repo(repo_data.get('path'))
     repo_path = Path(repo_data.get('path'))
-    name, email = get_git_credentials(repo)
+    username, email = get_git_credentials(repo)
     # Diff Head
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
-    if not repo_data.get('diff_list') or len(repo_data.get('diff_list')) <= repo_data.get('diff_skipped'):
+    if not repo_data.get('diff_list') or len(repo_data.get('diff_list')) <= 0:
         repo_data['diff_list'] = sorted([item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path])
-    diff_list = repo_data.get('diff_list')[repo_data.get('diff_skipped', 0):]
-    nextcounter = 0
-    for fileidx, filename in enumerate(diff_list):
-        item = repo.index.diff(None, paths=[filename], create_patch=True, word_diff_regex='.')
-        # TODO: Check if this is necessary
-        if not item:
-            item = repo.index.diff('HEAD', paths=[filename], create_patch=True, word_diff_regex='.')
-        if not item and repo_data.get('add_all'):
-            path = filename
-            origtext = ""
-            difftext = open(Path(repo.working_dir).joinpath(filename), 'r').read()
-            modtext = difftext
-            repo_data['modtype'] = "new"
-            diffcolored = "<span style='color:green'>The file gets added " \
-                          "when committed and deleted when stashed!</span>"
-        else:
-            if item:
-                item = item[0]
+    diff_list = repo_data.get('diff_list')[:]
+    for filename in diff_list:
+        gtdiff = GTDiffObject(repo, repo_path, filename)
+        if gtdiff.item is None:
+            from_list_to_list(repo_data, from_list='diff_list', to_list='removed_list')
+            continue
+        if gtdiff.diff_only_in_cc() and repo.data('skipcc'):
+            if repo_data.get('addcc', None) is not None:
+                from_list_to_list(repo_data, from_list='diff_list', to_list='finished_list')
+                repo.git.add(str(filename), A=True)
             else:
-                item = repo.index.diff(None, paths=[filename])[0]
-            if not item.a_blob and not item.b_blob:
-                pop_idx(repo_data, 'diff_list', repo_data.get('diff_skipped') + fileidx)
-                nextcounter += 1
-                continue
-            repo_data['modtype'] = "mod"
-            try:
-                origtext = item.a_blob.data_stream.read().decode('utf-8').lstrip(" ")
-                path = item.a_path
-            except:
-                origtext = ""
-                path = item.b_path
-            difftext = get_difftext(origtext, item, repo_path, repo)
-            diffcolored = color_diffs(difftext)
-            mergetext = []
-            if origtext == "" and not item.deleted_file or item.new_file:
-                repo_data['modtype'] = "new"
-                diffcolored = "<span style='color:green'>This untracked file gets added " \
-                              "when committed and deleted when stashed!</span>"
-            if item.deleted_file or not item.b_path:
-                repo_data['modtype'] = "del"
-                modtext = ""
-                diffcolored = "<span style='color:red'>This file gets deleted " \
-                              "when committed and restored when stashed!</span>"
-            elif mergetext:
-                repo_data['modtype'] = "merge"
-                modtext = mergetext[1]
-            else:
-                modtext = repo_path.absolute().joinpath(item.b_path).open().read().lstrip(" ")
-            if origtext.strip() == modtext.strip() and origtext.strip() != "" and repo_data.get('skipcc'):
-                nextcounter += 1
-                if repo_data.get('addcc', None) is not None:
-                    pop_idx(repo_data, 'diff_list', repo_data.get('diff_skipped') + fileidx)
-                    repo.git.add(str(filename), A=True)
-                else:
-                    repo_data['diff_skipped'] += 1
-                continue
-
-        # Apply filter options
-        if repo_data.get('filter_all') + repo_data.get('filter_from') + repo_data.get('filter_to') != '':
-            if repo_data.get('filter_all') != '':
-                if not (re.search(rf"{repo_data.get('filter_all')}", origtext) or
-                        re.search(rf"{repo_data.get('filter_all')}", modtext)):
-                    nextcounter += 1
-                    continue
-            if repo_data.get('filter_from') + repo_data.get('filter_to') != '':
-                origdiff, moddiff = get_diffs(difftext)
-                if not (re.search(rf"{repo_data.get('filter_from')}", origdiff) and
-                        re.search(rf"{repo_data.get('filter_to')}", moddiff)):
-                    nextcounter += 1
-                    continue
-
-        fname = repo_path.joinpath(path)
-        mods = modifications(difftext)
+                from_list_to_list(repo_data, from_list='diff_list', to_list='skipped_list')
+            continue
+        if gtdiff.validate_filter(repo_data.get('filter_all'), repo_data.get('filter_from'), repo_data.get('filter_to')):
+            from_list_to_list(repo_data, from_list='diff_list', to_list='skipped_list')
+            continue
         if diff_head:
             commitmsg = f"[GT Checked] Staged Files: {diff_head}"
         else:
-            commitmsg = f"[GT Checked]  {path}: {', '.join([orig + ' -> ' + mod for orig, mod in mods])}"
-        repo_data['modtext'] = modtext
-        repo_data['fname'] = str(fname)
-        repo_data['fpath'] = str(path)
-        repo_data['fileidx'] = fileidx - nextcounter
+            commitmsg = f"[GT Checked]  {repo_path}: {', '.join([orig + ' -> ' + mod for orig, mod in gtdiff.mods()])}"
+        repo_data['modtext'] = gtdiff.modtext
+        repo_data['modtype'] = gtdiff.modtype
+        repo_data['fname'] = str(gtdiff.fpath)
+        repo_data['fpath'] = str(gtdiff.path)
         custom_keys = [' '.join(repo_data.get('custom_keys')[i:i + 10]) for i in
                        range(0, len(repo_data.get('custom_keys')), 10)]
         if repo_data['mode'] == 'main':
-            inames = [Path(SYMLINK_DIR).joinpath(repo_path_hash).joinpath(str(iname.relative_to(repo_data['path']))) for iname in fname.parent.glob(f"{fname.name.replace('gt.txt', '')}*")
+            inames = [Path(SYMLINK_DIR).joinpath(repo_path_hash).joinpath(str(iname.relative_to(repo_data['path'])))
+                      for iname in gtdiff.fpath.parent.glob(f"{gtdiff.fpath.name.replace('gt.txt', '')}*")
                       if imghdr.what(iname)]
         else:
             inames = [Path(SYMLINK_DIR).joinpath(repo_path_hash).joinpath(str(iname.relative_to(repo_data['parent_repo_path']))) for iname in
-                      Path(repo_data['parent_repo_path']).glob(f"{str(fname.relative_to(repo_data.get('path'))).replace('gt.txt', '')}*")
+                      Path(repo_data['parent_repo_path']).glob(f"{str(gtdiff.fpath.relative_to(repo_data.get('path'))).replace('gt.txt', '')}*")
                       if imghdr.what(iname)]
         img_out = inames[0] if inames else None
         if not img_out:
             write_repo_data(repo_data_path, repo_data)
             return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, subrepo=subrepo,
                                    group_name=group_name,
-                                   branch=repo.active_branch, name=name,
+                                   branch=repo.active_branch, username=username,
                                    email=email, commitmsg=commitmsg,
-                                   difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(len(repo_data.get('diff_list')) - repo_data.get('diff_skipped')),
-                                   iname="No image", fname=fname.name, skipped=repo_data.get('diff_skipped'),
+                                   difftext=Markup(gtdiff.diffcolored), origtext=gtdiff.origtext, modtext=gtdiff.modtext,
+                                   files_left=str(len(repo_data.get('diff_list'))),
+                                   iname="No image", fname=gtdiff.fpath.name, skipped=len(repo_data.get('skipped_list')),
                                    vkeylang=repo_data.get('vkeylang'), custom_keys=custom_keys,
                                    font=repo_data.get('font'))
         else:
@@ -262,31 +310,32 @@ def gtcheck(group_name, repo_path_hash, subrepo, repo=None, repo_data=None):
             write_repo_data(repo_data_path, repo_data)
             return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, subrepo=subrepo,
                                    group_name=group_name,
-                                   branch=repo.active_branch, name=name,
+                                   branch=repo.active_branch, username=username,
                                    email=email, commitmsg=commitmsg,
                                    image=str(Path(img_out).relative_to(Path(SYMLINK_DIR).parent)),
                                    previmage=str(Path(prev_img).relative_to(Path(
                                        SYMLINK_DIR).parent)) if prev_img != "" else "",
                                    postimage=str(Path(post_img).relative_to(Path(
                                        SYMLINK_DIR).parent)) if post_img != "" else "",
-                                   difftext=Markup(diffcolored), origtext=origtext, modtext=modtext,
-                                   files_left=str(len(repo_data.get('diff_list')) - repo_data.get('diff_skipped')),
-                                   iname=img_out.name, fname=fname.name, skipped=repo_data.get('diff_skipped'),
+                                   difftext=Markup(gtdiff.diffcolored), origtext=gtdiff.origtext,
+                                   modtext=gtdiff.modtext,
+                                   files_left=str(len(repo_data.get('diff_list'))),
+                                   iname=img_out.name, fname=gtdiff.fpath.name,
+                                   skipped=len(repo_data.get('skipped_list')),
                                    vkeylang=repo_data.get('vkeylang'), custom_keys=custom_keys,
                                    font=repo_data.get('font'))
     else:
         if diff_head:
             commitmsg = f"[GT Checked] Staged Files: {diff_head}"
-            modtext = f"Please commit the staged files! You skipped {repo_data.get('diff_skipped')} files."
+            modtext = f"Please commit the staged files! You skipped {len(repo_data.get('skipped_list'))} files."
             write_repo_data(repo_data_path, repo_data)
             return render_template("gtcheck.html", repo_data=repo_data, repo_path_hash=repo_path_hash, subrepo=subrepo,
                                    group_name=group_name,
-                                   name=name, email=email, commitmsg=commitmsg, modtext=modtext, custom_keys='',
+                                   username=username, email=email, commitmsg=commitmsg, modtext=modtext, custom_keys='',
                                    files_left="0")
         if repo_data.get('diff_list', None) == []:
             write_repo_data(repo_data_path, repo_data)
             return render_template("nofile.html")
-        repo_data['diff_skipped'] = 0
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
 
@@ -338,52 +387,77 @@ def edit(group_name, repo_path_hash, subrepo):
     # Check if mod files left
     difflen = len(repo_data.get('diff_list'))
     repo_data['last_action'] = f"{datetime.date.today()}"
-    if difflen <= repo_data.get('diff_skipped'):
-        if data['selection'] == 'commit':
-            repo.git.commit('-m', data['commitmsg'])
-        repo_data['diff_skipped'] = 0
+    repo_data['font'] = data.get('fonts', None) if data.get('fonts', None) else repo_data['font']
+    if repo_data['username'] != data.get('username') or repo_data['email'] != data.get('email'):
+        repo_data['username'] = data.get('username', '')
+        session['username'] = data.get('username', '')
+        repo_data['email'] = data.get('email', '')
+        session['email'] = data.get('email', '')
+        set_git_credentials(repo, data.get('username', ''), data.get('email', ''))
+    repo_data['vkeylang'] = data['vkeylang']
+    repo_data['custom_keys'] = data['custom_keys'].split(' ')
+    if data['selection'] == 'filter':
+        for group in ['skipped_list', 'finished_list']:
+            valid_gtfname = []
+            for gtfname in repo_data[group]:
+                with open(Path(repo_data['path']).joinpath(gtfname), 'r') as fin:
+                    if re.search(rf"{data.get('filter')}", fin.read()):
+                        valid_gtfname.append(gtfname)
+            repo_data[group] = list(set(repo_data[group]).difference(set(valid_gtfname)))
+            repo_data['diff_list'] = valid_gtfname + repo_data['diff_list']
+        write_repo_data(repo_data_path, repo_data)
+        return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
+    if data['selection'] == 'skipped':
+        from_list_to_list(repo_data, from_list='diff_list', to_list='skipped_list', all=True)
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     fname = Path(repo_data.get('path')).joinpath(repo_data.get('fpath'))
     modtext = data['modtext'].replace("\r\n", "\n")
-    repo_data['font'] = data.get('fonts', None) if data.get('fonts', None) else repo_data['font']
-    repo_data['vkeylang'] = data['vkeylang']
-    repo_data['custom_keys'] = data['custom_keys'].split(' ')
-    if data.get('undo', None) is not None:
-        repo.git.reset('HEAD', repo_data.get('undo_fpath'))
+    if data['selection'] == 'undo':
+        #repo.git.reset('HEAD', .repo_dataget('undo_fpath'))
         with open(repo_data.get('undo_fpath'), "w") as fout:
             fout.write(repo_data.get('undo_value'))
-            repo_data['diff_skipped'] += 1
+        if repo_data.get('undo_fpath') in repo.data.get('skipped_list'):
+            from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list')
+        elif repo_data.get('undo_fpath') in repo.data.get('finished_list'):
+            from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list')
+        else:
+            from_list_to_list(repo_data, from_list='removed_list', to_list='diff_list')
+        write_repo_data(repo_data_path, repo_data)
+        return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     repo_data['undo_fpath'] = str(fname)
     repo_data['undo_value'] = repo_data.get('modtext')
+    if difflen == 0 and len(repo_data['skipped_list']) != 0:
+        if data['selection'] == 'commit':
+            repo.git.commit('-m', data['commitmsg'])
+        from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list', all=True)
+        write_repo_data(repo_data_path, repo_data)
+        return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     if data['selection'] == 'commit':
-        if difflen - repo_data.get('diff_skipped') != 0:
-            if repo_data.get('modtext').replace("\r\n", "\n") != modtext or repo_data.get('modtype') == "merge":
-                with open(fname, 'w') as fout:
-                    fout.write(modtext)
-            repo.git.add(str(fname), A=True)
-            #repo.git.add(str(fname))
+        if repo_data.get('modtext').replace("\r\n", "\n") != modtext or repo_data.get('modtype') == "merge":
+            with open(fname, 'w') as fout:
+                fout.write(modtext)
+        repo.git.add(str(fname), A=True)
+        #repo.git.add(str(fname))
         repo.git.commit('-m', data['commitmsg'])
     elif data['selection'] == 'stash':
         if repo_data.get('modtype') in ['new']:
             repo.git.rm('-f', str(fname))
+            from_list_to_list(repo_data, from_list='diff_list', to_list='removed_list')
+            write_repo_data(repo_data_path, repo_data)
+            return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
         else:
             repo.git.checkout('--', str(fname))
-        repo_data['diff_overall'] -= 1
     elif data['selection'] == 'add':
         if repo_data.get('modtext').replace("\r\n", "\n") != modtext or repo_data.get('modtype') == "merge":
             with open(fname, 'w') as fout:
                 fout.write(modtext)
         repo.git.add(str(fname), A=True)
     else:
-        repo_data['diff_skipped'] += 1
-        if data.get('continue_skipped', None) is not None:
-            repo_data['diff_skipped'] = 0
+        from_list_to_list(repo_data, from_list='diff_list', to_list='skipped_list')
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
-    pop_idx(repo_data, 'diff_list', repo_data.get('diff_skipped') + repo_data.get('fileidx'))
-    if data.get('continue_skipped', None) is not None:
-        repo_data['diff_skipped'] = 0
+    from_list_to_list(repo_data, from_list='diff_list', to_list='finished_list')
     write_repo_data(repo_data_path, repo_data)
     return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
 
@@ -470,6 +544,11 @@ def show_readme():
             fin.read(), extensions=["fenced_code"])
     return md_template_string
 
+@app.route('/info', methods=['GET', 'POST'])
+def info():
+    """Show additional information"""
+    return render_template("info.html")
+
 
 @app.route('/seteditor/<group_name>/<repo_path_hash>', methods=['GET', 'POST'])
 def seteditor(group_name, repo_path_hash):
@@ -508,8 +587,8 @@ def edit_gtset(group_name, repo_path_hash):
             update_repo_data(repo_data_path, {'diff_list': diff_list,
                                               'skipped_list': [],
                                               'finished_list': [],
+                                              'removed_list': [],
                                               'diff_overall': len(diff_list),
-                                              'diff_skipped': 0,
                                               })
             return index()
         if splits > 0:
@@ -545,14 +624,16 @@ def edit_gtset(group_name, repo_path_hash):
                     src = Path(repo_data['path']).joinpath(gtfile)
                     dest = sub_repo_path.joinpath(gtfile)
                     dest.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy(src, dest)
+                    if src.exists():
+                        shutil.copy(src, dest)
                     # Copy also exstings json files
                     src = Path(repo_data['path']).joinpath(gtfile.replace('.gt.txt', '') + '.json')
                     if src.exists():
                         shutil.copy(src, sub_repo_path.joinpath(gtfile.replace('.gt.txt', '') + '.json'))
                 # Add repo to data folder
-                info = (repo_data.get('info', '') + " This repo is a duplicate and/or splitted into parts.").strip()
-                add_subrepo_path(True, group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
+                if not dirty_repo:
+                    info = (repo_data.get('info', '') + " This repo is a duplicate and/or splitted into parts.").strip()
+                    add_subrepo_path(True, group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
                                  info, "")
         if dirty_repo:
             repo.git.checkout('master')
@@ -568,7 +649,10 @@ def edit_gtset(group_name, repo_path_hash):
                         src = Path(repo_data['path']).joinpath(gtfile)
                         dest = sub_repo_path.joinpath(gtfile)
                         dest.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy(src, dest)
+                        if src.exists():
+                            shutil.copy(src, dest)
+                        elif dest.exists():
+                            dest.unlink()
             repo.git.reset('HEAD^1')
     return index()
 
@@ -659,8 +743,8 @@ def edit_subset(group_name, repo_path_hash):
                             update_repo_data(base_set_path, {'diff_list': diff_list,
                                                              'skipped_list': [],
                                                              'finished_list': [],
+                                                             'removed_list': [],
                                                              'diff_overall': len(diff_list),
-                                                             'diff_skipped': 0,
                                                              })
                     elif len(base_sets) == 1:
                         add_compare_to_base_repo(base_set_repo, compare_set, commit_staged=True)
@@ -679,8 +763,8 @@ def edit_subset(group_name, repo_path_hash):
                     update_repo_data(base_set_data_path, {'diff_list': diff_list,
                                                       'skipped_list': [],
                                                       'finished_list': [],
+                                                      'removed_list': [],
                                                       'diff_overall': len(diff_list),
-                                                      'diff_skipped': 0,
                                                       })
     return index()
 
@@ -701,15 +785,14 @@ def add_compare_to_base_repo(base_repo, compare_repo_path, commit_staged=False):
         base_repo.git.merge('--allow-unrelated-histories', '-X', 'theirs',
                             compare_repo_path.name+f"/{compare_repo.active_branch}")
     except GitCommandError as merge_conflict:
-        if 'overwritten by merge:':
+        if 'overwritten by merge:' in merge_conflict:
             conflicted_files = str(merge_conflict).split('overwritten by merge:')[-1].split('Please commit your changes')[0].strip().split('\n')
             for conflicted_file in conflicted_files:
                 base_repo.git.checkout('HEAD', '--', conflicted_file.strip())
             base_repo.git.merge('--allow-unrelated-histories', '-X', 'theirs',
                                 compare_repo_path.name + f"/{compare_repo.active_branch}")
         else:
-            pass
-            log.error(merge_conflict)
+            app.logger.error(merge_conflict)
     base_repo.delete_remote(compare_repo_path.name)
     if new_commit:
         compare_repo.git.reset('HEAD^1')
@@ -953,16 +1036,15 @@ def add_subrepo_path(add_all, group_name, set_name, repo_path, parent_repo_path,
                            'filter_to': '',
                            'diff_list': diff_list,
                            'finished_list': [],
+                           'removed_list': [],
                            'skipped_list': [],
                            'diff_overall': len(diff_list),
-                           'diff_skipped': 0,
                            'font': 'RobotoMonoGTC',
                            'vkeylang': '',
                            'custom_keys': [],
                            'modtext': '',
                            'fname': '',
                            'fpath': '',
-                           'fileidx': 0,
                            'undo_fpath': '',
                            'undo_value': '',
                            }, fout, indent=4)
@@ -1034,15 +1116,14 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                                'diff_list': diff_list,
                                'finished_list': [],
                                'skipped_list': [],
+                               'removed_list': [],
                                'diff_overall': len(diff_list),
-                               'diff_skipped': 0,
                                'font': 'RobotoMonoGTC',
                                'vkeylang': '',
                                'custom_keys': [],
                                'modtext': '',
                                'fname': '',
                                'fpath': '',
-                               'fileidx': 0,
                                'undo_fpath': '',
                                'undo_value': '',
                                }, fout, indent=4)
