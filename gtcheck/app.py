@@ -278,7 +278,7 @@ def gtcheck(group_name, repo_path_hash, subrepo, repo=None, repo_data=None):
         if diff_head:
             commitmsg = f"[GT Checked] Staged Files: {diff_head}"
         else:
-            commitmsg = f"[GT Checked]  {repo_path}: {', '.join([orig + ' -> ' + mod for orig, mod in gtdiff.mods()])}"
+            commitmsg = f"[GT Checked]  {repo_path.name}: {', '.join([orig + ' -> ' + mod for orig, mod in gtdiff.mods()])}"
         repo_data['modtext'] = gtdiff.modtext
         repo_data['modtype'] = gtdiff.modtype
         repo_data['fname'] = str(gtdiff.fpath)
@@ -396,6 +396,19 @@ def edit(group_name, repo_path_hash, subrepo):
         set_git_credentials(repo, data.get('username', ''), data.get('email', ''))
     repo_data['vkeylang'] = data['vkeylang']
     repo_data['custom_keys'] = data['custom_keys'].split(' ')
+    if data['selection'] == 'settings':
+        write_repo_data(repo_data_path, repo_data)
+        return render_template("setup.html", username=data.get('username'), email=data.get('email'),
+                        repo_path=data.get('repo_path', ''), group_name=group_name, subrepo=subrepo,
+                        repo_path_hash=repo_path_hash,
+                        active_branch=repo.active_branch.name,
+                        branches=[branch.name for branch in repo.branches] if repo.branches != [] else [
+                            repo.active_branch.name],
+                        regexnum=repo_data.get('regexnum', "^(.*?)(\d+)(\D*)$"),
+                        custom_keys=' '.join(repo_data.get('custom_keys', [''])),
+                        filter_all=repo_data.get('filter_all', ''),
+                        filter_from=repo_data.get('filter_from', ''),
+                        filter_to=repo_data.get('filter_to', ''), )
     if data['selection'] == 'filter':
         for group in ['skipped_list', 'finished_list']:
             valid_gtfname = []
@@ -407,8 +420,10 @@ def edit(group_name, repo_path_hash, subrepo):
             repo_data['diff_list'] = valid_gtfname + repo_data['diff_list']
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
-    if data['selection'] == 'skipped':
-        from_list_to_list(repo_data, from_list='diff_list', to_list='skipped_list', all=True)
+    if data['selection'] == 'skipped' or (difflen == 0 and len(repo_data['skipped_list']) != 0):
+        if data['selection'] == 'commit':
+            repo.git.commit('-m', data['commitmsg'])
+        from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list', all=True)
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     fname = Path(repo_data.get('path')).joinpath(repo_data.get('fpath'))
@@ -417,22 +432,16 @@ def edit(group_name, repo_path_hash, subrepo):
         #repo.git.reset('HEAD', .repo_dataget('undo_fpath'))
         with open(repo_data.get('undo_fpath'), "w") as fout:
             fout.write(repo_data.get('undo_value'))
-        if repo_data.get('undo_fpath') in repo.data.get('skipped_list'):
+        if repo_data.get('undo_fpath') in repo_data.get('skipped_list'):
             from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list')
-        elif repo_data.get('undo_fpath') in repo.data.get('finished_list'):
-            from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list')
+        elif repo_data.get('undo_fpath') in repo_data.get('finished_list'):
+            from_list_to_list(repo_data, from_list='finished_list', to_list='diff_list')
         else:
             from_list_to_list(repo_data, from_list='removed_list', to_list='diff_list')
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     repo_data['undo_fpath'] = str(fname)
     repo_data['undo_value'] = repo_data.get('modtext')
-    if difflen == 0 and len(repo_data['skipped_list']) != 0:
-        if data['selection'] == 'commit':
-            repo.git.commit('-m', data['commitmsg'])
-        from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list', all=True)
-        write_repo_data(repo_data_path, repo_data)
-        return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     if data['selection'] == 'commit':
         if repo_data.get('modtext').replace("\r\n", "\n") != modtext or repo_data.get('modtype') == "merge":
             with open(fname, 'w') as fout:
@@ -653,6 +662,9 @@ def edit_gtset(group_name, repo_path_hash):
                             shutil.copy(src, dest)
                         elif dest.exists():
                             dest.unlink()
+                    info = (repo_data.get('info', '') + " This repo is a duplicate and/or splitted into parts.").strip()
+                    add_subrepo_path(True, group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
+                                 info, "")
             repo.git.reset('HEAD^1')
     return index()
 

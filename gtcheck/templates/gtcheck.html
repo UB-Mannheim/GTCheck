@@ -199,13 +199,16 @@
 			<ul><input type="text"  id="skipped" name="skipped" value="{{ skipped }}" readonly></ul>
 		</li>
 		  <li>
-			  <a><i class="material-icons black-text" onclick="window.location.href='{{ url_for('index') }}';">home</i></a>
+			  <a  style="padding-left: 5px; padding-right: 5px"><i class="material-icons black-text" onclick="window.location.href='{{ url_for('index') }}';">home</i></a>
 		  </li>
 		  <li>
-			  <a><i class="material-icons black-text" onclick="window.location.href='{{ url_for('info') }}';">settings</i></a>
-		  </li>
+		  <a href="{{ settings }}" target="blank" style="padding-left: 5px; padding-right: 5px">
+			<button style='font-size: 0.6vw;' id="!" class='btn-flat btn-secondary' data-toggle="tooltip" data-placement="top" title="Go to settings page" name="selection" value="settings">
+					<i class="material-icons black-text">settings</i>
+			</button>
+		</a></li>
 		  <li>
-			  <a><i class="material-icons black-text" onclick="window.location.href='{{ url_for('info') }}';">info</i></a>
+			  <a style="padding-left: 5px; padding-right: 5px" ><i class="material-icons black-text" onclick="window.location.href='{{ url_for('info') }}';">info</i></a>
 		  </li>
       </ul>
     </div>
