@@ -22,10 +22,8 @@
             Materialize.updateTextFields();
       });
     </script>
-    <div style="margin-left: 15px; margin-right: 15px;">
-        <h1 class="heading center">GT Check Seteditor</h1>
-    </div>
     <div class="container">
+        <h1 class="heading">GT Check Seteditor</h1>
         <form id="gtcheck-form" action="{{ url_for('edit_gtset', group_name=group_name, repo_path_hash=repo_path_hash) }}" method="POST" enctype="multipart/form-data">
         <h4>Repo info</h4><br>
             <div class="row">

@@ -169,39 +169,62 @@
 	</script>
 </head>
 <body>
-	<div style="margin-left: 15px; margin-right: 15px;">
-		<h2 class="heading center" id="topic">GT Check</h2>
+<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash, subrepo=subrepo) }}" method="POST" enctype="multipart/form-data">
+   <nav style="height: 100px;">
+    <div class="nav-wrapper white black-text">
+      <a href="#" class="brand-logo black-text" style="margin-left: 10%; font-size: 4rem; line-height: 100px;">GT Check</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down" style="line-height: 10px; margin-top: 15px">
+        <li style="width: 100px; margin-left: 5px;">
+			<ul><label style="font-size:0.75rem; " for="name">Name</label></ul>
+			<ul><input class="validate" type="text" id="name" name="name" value="{{ name }}"></ul>
+		</li>
+		  <li style="width: 100px; margin-left: 5px;">
+			<ul><label style="font-size:0.75rem;" for="email">Email</label></ul>
+			<ul><input type="text"  id="email" name="email" value="{{ email }}"></ul>
+		</li>
+		  <li style="width: 100px; margin-left: 5px;">
+			<ul><label style="font-size:0.75rem;" for="branch">Branch</label></ul>
+			<ul><input type="text" id="branch" name="branch" value="{{ branch }}" readonly></ul>
+		</li>
+		  <li style="width: 100px; margin-left: 5px;">
+			<ul><label style="font-size:0.75rem;" for="files_len">Files overall</label></ul>
+			<ul><input type="text" id="files_len" name="files_len" value="{{ repo_data['diff_overall'] }}" readonly></ul>
+		</li>
+		  <li style="width: 100px; margin-left: 5px;">
+			<ul><label style="font-size:0.75rem;" for="files_left">Files left</label></ul>
+			<ul><input type="text"  id="files_left" name="files_left" value="{{ files_left }}" readonly></ul>
+		</li>
+		  <li style="width: 100px; margin-left: 5px;">
+			<ul><label style="font-size:0.75rem;" for="skipped">Files skipped</label></ul>
+			<ul><input type="text"  id="skipped" name="skipped" value="{{ skipped }}" readonly></ul>
+		</li>
+		  <li>
+			  <a><i class="material-icons black-text" onclick="window.location.href='{{ url_for('index') }}';">home</i></a>
+		  </li>
+		  <li>
+			  <a><i class="material-icons black-text" onclick="window.location.href='{{ url_for('info') }}';">settings</i></a>
+		  </li>
+		  <li>
+			  <a><i class="material-icons black-text" onclick="window.location.href='{{ url_for('info') }}';">info</i></a>
+		  </li>
+      </ul>
+    </div>
+  </nav>
+   	<div class="progress blue lighten-4 tooltipped" style="margin: 0px; " data-position="top" data-tooltip="Progress: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }} %">
+		<span>Progress</span>
+		<div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
 	</div>
-	<form id="gtcheckedit-form" action="{{ url_for('edit', group_name=group_name, repo_path_hash=repo_path_hash, subrepo=subrepo) }}" method="POST" enctype="multipart/form-data">
-
 		<input type="hidden"  id="custom_keys" name="custom_keys" value="{{ custom_keys }}" >
-		<div class="fixed-action-btn" style="height: 97%;right:-12%" id="setting-group">
-		<label for="fonts">Font selection</label><br>
-		<input class="fonts" id="fonts" name="fonts">
-		<div id="switcher"></div>
-		<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
-		<select class="browser-default form-control" name="vkeylang" style="width:40%;font-size:0.75rem" id="lang"></select>
-			<label for="undo">Undo last action</label>
-			<div class="switch"  id="undo">
-				<label>
-					Off
-					<input type="checkbox" name="undo">
-					<span class="lever"></span>
-					On
-				</label></div><br>
-			<label for="continue_skipped">Continue with skipped</label>
-			<div class="switch"  id="continue_skipped">
-				<label>
-					Off
-					<input type="checkbox" name="continue_skipped">
-					<span class="lever"></span>
-					On
-				</label>
-			</div>
-
+		<div class="fixed-action-btn" style="height: calc(100% - 110px);right:-12%" id="setting-group">
+			<label for="fonts">Font selection</label><br>
+			<input class="fonts" id="fonts" name="fonts">
+			<div id="switcher"></div>
+			<label style="font-size:0.6rem" for="lang">Virtual Keyboard Language</label>
+			<select class="browser-default form-control" name="vkeylang" style="width:40%;font-size:0.75rem" id="lang"></select>
 		</div>
-	<div class="col s12 m6 l6"><h6 class="heading center">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 	<div style="margin-left: 10%; margin-right: 10%">
+		<div class="col s12 m6 l6"><h6 class="heading" style="margin-top: 10px;">ground truth: {{ fname }} image: {{ iname }}</h6></div>
+		<br>
 		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
 		<div class="textline"><img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/></div>
 			<div class="mod-text"><textarea id="keyboard" name="modtext" contenteditable="true">{{ modtext }}</textarea>
@@ -225,36 +248,21 @@
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
 		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
 	</div>
-	<div class="progress blue lighten-4 tooltipped" data-position="top" data-tooltip="Progress: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }} %">
-		<span>Progress</span>
-		<div class="determinate blue" style="width: {{ ((repo_data['diff_overall']-(repo_data['diff_list']|length))*100//repo_data['diff_overall']) }}%; animation: grow 2s;"></div>
-	</div>
-	<div class="row" style="float:right">
-            <div class="col s2">
-				<label style="font-size:0.5rem" for="name">Name</label>
-				<input class="validate" type="text" id="name" name="name" value="{{ name }}">
-            </div>
-            <div class="col s2">
-				<label style="font-size:0.5rem" for="email">Email</label>
-                <input type="text"  id="email" name="email" value="{{ email }}">
-            </div>
-            <div class="col s2">
-				<label style="font-size:0.5rem" for="files_len">Files overall</label>
-                <input type="text" id="files_len" name="files_len" value="{{ repo_data['diff_overall'] }}" readonly>
-            </div>
-			<div class="col s2">
-				<label style="font-size:0.5rem" for="branch">Branch</label>
-                <input type="text" id="branch" name="branch" value="{{ branch }}" readonly>
-            </div>
-			<div class="col s2">
-				<label style="font-size:0.5rem" for="files_left">Files left</label>
-                <input type="text"  id="files_left" name="files_left" value="{{ files_left }}" readonly>
-            </div>
-			<div class="col s2">
-				<label style="font-size:0.5rem" for="skipped">Files skipped</label>
-                <input type="text"  id="skipped" name="skipped" value="{{ skipped }}" readonly>
-            </div>
-	</div>
+	<div class="fixed-action-btn" style="right: 0px; left: 2%;" id="submit-group2">
+		<a><div style="width: 6%; margin: 0px;">
+				<label style="font-size:0.5rem" for="filter">Regex-filter</label>
+                <input type="text" id="filter" name="filter" value="{{ filter }}">
+		</div></a>
+		<a href="{{ filter }}" target="blank">
+			<button style='font-size: 0.6vw;' id="add_by_filter!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Add files by filter to check again" name="selection" value="add_by_filter">Add by filter!</button>
+		</a>
+		<a href="{{ undo }}" target="blank">
+			<button style='font-size: 0.6vw;' id="undo!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Undo last action!" name="selection" value="undo">Undo last action!</button>
+		</a>
+		<a href="{{ skipped }}" target="blank">
+			<button style='font-size: 0.6vw;' id="skipped!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Go on with the skipped files!" name="selection" value="skipped">Continue with skipped!</button>
+		</a>
+		</div>
 	</form>
 		<script>
 		$('input.fonts').fontpicker({

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GT Check Info</title>
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="/static/css/materialize.min.css" media="screen,projection"/>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/gtcheck.css') }}">
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body>
+<!--Import jQuery before materialize.js-->
+<script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="/static/js/materialize.min.js"></script>
+<div class="container">
+    <h1 class="heading">GT Check Info</h1>
+    <br><br><br><br>
+    <h4>Information</h4>
+    <table>
+        <tr>
+            <th>Function</th>
+            <th colspan="4">Description</th>
+            <th>Shortcut</th>
+        </tr>
+      <tr>
+        <th><button id="add!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Add this line to the next commit!" name="selection" value="add">add!</button></th>
+        <td colspan="4">Add the current textversion to the GT-File and stage it for the next commit.</td>
+        <th>F1</th>
+      </tr>
+      <tr>
+        <td><button  id="commit!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Commit this and all added lines!"  name="selection" value="commit">commit!</button></td>
+        <td colspan="4">Add the current textversion to the GT-File and commit this and all staged files.</td>
+        <th>F2</th>
+      </tr>
+      <tr>
+        <td><button id="skip!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Skip this line for now!" name="selection" value="skip">skip!</button></td>
+        <td colspan="4">Skip this GT-File for now, you can check it again later.</td>
+        <th>F3</th>
+      </tr>
+      <tr>
+        <td><button id="stash!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Stash the modifications of this line!" name="selection" value="stash">stash!</button></td>
+        <td colspan="4">Stash the modified version and add the original version to the GT-File. It is not needed to commit version.</td>
+        <th>F4</th>
+      </tr>
+        <tr>
+        <td><button style='font-size: 0.6vw;' id="add_by_filter!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Add files by filter to check again" name="selection" value="add_by_filter">Add by filter!</button></td>
+        <td colspan="4">Add already added and skipped GT-Files again to check by a regex-filter.</td>
+      </tr>
+      <tr>
+        <td><button style='font-size: 0.6vw;' id="undo!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Undo last action!" name="selection" value="undo">Undo last action!</button></td>
+        <td colspan="4">Reset the last edited GT-File and open it again.</td>
+      </tr>
+      <tr>
+        <td><button style='font-size: 0.6vw;' id="skipped!" class='btn btn-secondary' data-toggle="tooltip" data-placement="top" title="Go on with the skipped files!" name="selection" value="skipped">Continue with skipped!</button></td>
+        <td colspan="4">Add the skipped GT-Files to the check again and start with them.</td>
+      </tr>
+</table>
+    <br><br>
+    <button type="button" class="btn center waves-effect waves-light" onclick="history.back()">Back to check!</button>
+    <br><br>
+    <button type="button" class="btn center waves-effect waves-light" onclick="window.location.href='{{ url_for('index') }}';">Back to ground truth selection!</button>
+</div>
+</body>
+</html>

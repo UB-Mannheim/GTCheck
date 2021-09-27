@@ -27,13 +27,9 @@
     Materialize.updateTextFields();
   });
 </script>
-<div style="margin-left: 15px; margin-right: 15px;">
-    <h1 class="heading center">GT Check Selection</h1>
-</div>
-
-<div style="margin-left: 15px; margin-right: 15px;">
-    <h5 class="heading center">Groups</h5>
-</div>
+<div class="container">
+    <h1 class="heading">GT Check Selection</h1>
+    <h5 class="heading">Groups</h5>
 <ul class="collapsible" data-collapsible="accordion">
 {% for group_name, repos in grp_repo_data.items() %}
     <li>
@@ -186,6 +182,6 @@
 {% endfor %}
 
 </ul>
-
+</div>
 </body>
 </html>

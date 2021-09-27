@@ -12,9 +12,8 @@
 <!--Import jQuery before materialize.js-->
 <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
 <script type="text/javascript" src="/static/js/materialize.min.js"></script>
-<div style="margin-left: 15px; margin-right: 15px;">
+<div class="container">
     <h1 class="heading center">GT Check Login</h1>
-</div>
     <form id="gtcheck-form" action="{{ url_for('password_validation') }}" method="POST" enctype="multipart/form-data">
         <div class="column" style="margin: 0 10em;">
             <div class="input-field col s3">
@@ -37,6 +36,7 @@
         {% endif %}
             </div>
     </form>
+</div>
 {% with messages = get_flashed_messages() %}
     {% if messages %}
         {% for message in messages %}
