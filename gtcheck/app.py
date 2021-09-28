@@ -617,7 +617,11 @@ def edit_gtset(group_name, repo_path_hash):
             Path(repo_data.get('path', '')).name
         sub_repo_set = defaultdict()
         duplication_offset = 0
-        for duplication in range(duplication_offset, duplications):
+        while duplication_offset < 100:
+            if not Path(SUBREPO_DIR).joinpath(repo_path_hash).joinpath(f'duplicate_{duplication_offset + 1:02d}_part_{1:02d}').exists():
+                break
+            duplication_offset += 1
+        for duplication in range(duplication_offset, duplication_offset+duplications):
             for part, amount_per_part_offset in enumerate(range(0, len(diff_list), amount_per_parts)):
                 # Init sub_repo under static/symlink folder
                 sub_repo_ext = f'duplicate_{duplication + 1:02d}_part_{part + 1:02d}'
@@ -647,7 +651,7 @@ def edit_gtset(group_name, repo_path_hash):
         if dirty_repo:
             repo.git.checkout('master')
             # Copy newest version of files
-            for duplication in range(0, duplications):
+            for duplication in range(duplication_offset, duplication_offset+duplications):
                 for part, amount_per_part_offset in enumerate(range(0, len(diff_list), amount_per_parts)):
                     sub_repo_ext = f'duplicate_{duplication + 1:02d}_part_{part + 1:02d}'
                     sub_repo_path = Path(SUBREPO_DIR).joinpath(repo_path_hash).joinpath(sub_repo_ext)
