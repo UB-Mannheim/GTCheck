@@ -1,3 +1,6 @@
 flask
+click
 gitpython
 markdown
+ocrd>=2.20.0
+-e git://github.com/JKamlah/ocrd_segment#egg=ocrd-segment
