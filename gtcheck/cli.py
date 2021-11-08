@@ -77,7 +77,7 @@ def run_server(purge):
 @gtcheck.command()
 @click.argument('repo-paths', nargs=-1, type=click.Path(exists=True))
 @click.option('-a', '--add-all', default=False, is_flag=True, help='Add all ground truth files to the check.')
-@click.option('-r', '--reset-to', default='', help='Soft reset the current commit to another commit. '
+@click.option('-r', '--reset-to', help='Soft reset the current commit to another commit. '
                                                    'Reset to a specific commit, e.g. "a83cde", or go a fix number of '
                                                    'commits back, e.g. reset the last three commits "HEAD^3".')
 @click.option('--image-dir', default='.', type=click.Path(),
@@ -88,8 +88,8 @@ def run_server(purge):
 @click.option('--readme', nargs=1, type=click.Path(exists=True),
               help="Add readme markdown file from gt repo manually "
                    "(default: add automatically the readme file from the main gitfolder.)")
-def add_repo(add_all, image_dir, group_name, set_name, repo_paths, info, readme):
-    return app.add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme)
+def add_repo(add_all, reset_to, image_dir, group_name, set_name, repo_paths, info, readme):
+    return app.add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme, reset_to)
 
 
 if __name__ == '__main__':

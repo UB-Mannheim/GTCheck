@@ -16,7 +16,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from subprocess import check_output
 
-import click
 import markdown
 from flask import Flask, render_template, request, Markup, flash, session
 from git import Repo, InvalidGitRepositoryError, GitCommandError
@@ -238,8 +237,7 @@ def from_list_to_list(repo_data, from_list='diff_list', to_list='skipped', index
         repo_data[to_list] = repo_data[from_list]+repo_data[to_list]
         repo_data[from_list] = []
     else:
-        repo_data[to_list].append(repo_data[from_list][index])
-        repo_data[from_list].pop(index)
+        repo_data[to_list].append(repo_data[from_list].pop(index))
     return
 
 @app.route('/gtcheck/edit/<group_name>/<repo_path_hash>/<subrepo>', methods=['GET', 'POST'])
@@ -429,15 +427,20 @@ def edit(group_name, repo_path_hash, subrepo):
     fname = Path(repo_data.get('path')).joinpath(repo_data.get('fpath'))
     modtext = data['modtext'].replace("\r\n", "\n")
     if data['selection'] == 'undo':
+        if repo_data['undo_fpath'] == '':
+            return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
         #repo.git.reset('HEAD', .repo_dataget('undo_fpath'))
         with open(repo_data.get('undo_fpath'), "w") as fout:
             fout.write(repo_data.get('undo_value'))
-        if repo_data.get('undo_fpath') in repo_data.get('skipped_list'):
-            from_list_to_list(repo_data, from_list='skipped_list', to_list='diff_list')
-        elif repo_data.get('undo_fpath') in repo_data.get('finished_list'):
-            from_list_to_list(repo_data, from_list='finished_list', to_list='diff_list')
+        undo_fname = str(repo_data.get('undo_fpath')).replace(repo_data.get('path'), '').strip('/ ')
+        if undo_fname in repo_data.get('skipped_list'):
+            from_list = 'skipped_list'
+        elif undo_fname in repo_data.get('finished_list'):
+            from_list = 'finished_list'
         else:
-            from_list_to_list(repo_data, from_list='removed_list', to_list='diff_list')
+            from_list = 'removed_list'
+        repo_data['diff_list'] = [repo_data[from_list].pop(-1)] + repo_data['diff_list']
+        repo_data['undo_fpath'] = ''
         write_repo_data(repo_data_path, repo_data)
         return gtcheck(group_name, repo_path_hash, subrepo, repo, repo_data)
     repo_data['undo_fpath'] = str(fname)
@@ -586,7 +589,7 @@ def edit_gtset(group_name, repo_path_hash):
     repo_data = get_repo_data(repo_data_path)
     repo = get_repo(repo_data['path'])
     if data.get('add_all', None) is not None:
-        diff_list = get_all_gt_files(repo)
+        diff_list = get_all_gt_files(repo, fileformat_extension(repo_data.get('fileformat')))
     else:
         diff_list = repo_data.get('diff_list')
     if diff_list:
@@ -646,7 +649,7 @@ def edit_gtset(group_name, repo_path_hash):
                 # Add repo to data folder
                 if not dirty_repo:
                     info = (repo_data.get('info', '') + " This repo is a duplicate and/or splitted into parts.").strip()
-                    add_subrepo_path(True, group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
+                    add_subrepo_path(True, repo_data.get('fileformat'), repo_data.get('image_dir'), group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
                                  info, "")
         if dirty_repo:
             repo.git.checkout('master')
@@ -667,7 +670,7 @@ def edit_gtset(group_name, repo_path_hash):
                         elif dest.exists():
                             dest.unlink()
                     info = (repo_data.get('info', '') + " This repo is a duplicate and/or splitted into parts.").strip()
-                    add_subrepo_path(True, group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
+                    add_subrepo_path(True, repo_data.get('fileformat'), repo_data.get('image_dir'), group_name, set_name + "_" + sub_repo_ext, sub_repo_path, repo_data.get('path'),
                                  info, "")
             repo.git.reset('HEAD^1')
     return index()
@@ -740,8 +743,8 @@ def edit_subset(group_name, repo_path_hash):
                 new_duplicate_set_repo.git.reset(f'HEAD^{len(compare_sets)}')
             # Add repo to data folder
             info = (repo_data.get('info', '') + " This repo is a new duplicate.").strip()
-            add_subrepo_path(True, group_name, new_duplicate_set.name, new_duplicate_set, repo_data.get('path'),
-                             info, "")
+            add_subrepo_path(True, repo_data.get('fileformat'), repo_data.get('image_dir'), group_name,
+                             new_duplicate_set.name, new_duplicate_set, repo_data.get('path'), info, "")
         else:
             for base_set in base_sets:
                 base_set_repo = Repo(base_set)
@@ -812,7 +815,6 @@ def add_compare_to_base_repo(base_repo, compare_repo_path, commit_staged=False):
     base_repo.delete_remote(compare_repo_path.name)
     if new_commit:
         compare_repo.git.reset('HEAD^1')
-
 
 
 @app.route('/gtcheck/setup/<group_name>/<repo_path_hash>/<subrepo>', methods=['GET', 'POST'])
@@ -896,11 +898,11 @@ def index():
     Renders setup page
     :return:
     """
-    if app.config['SINGLE']:
+    if app.config['MODE'] == 'single':
         repo = get_repo(app.config['REPO_PATH'])
         username, email = get_git_credentials(repo)
         return render_template("setup.html", username=username, email=email, repo_path=app.config['repo_path'],
-                               group_name="Single", repo_path_hash=hash_it(repo.working_dir), subrepo='main',
+                               group_name="single", repo_path_hash=hash_it(repo.working_dir), subrepo='main',
                                active_branch=repo.active_branch, branches=repo.branches,
                                regexnum="^(.*?)(\d+)(\D*)$", custom_keys="",
                                filter_all="", filter_from="", filter_to="")
@@ -948,7 +950,7 @@ def logger(fname):
     app.logger.addHandler(file_handler)
 
 
-def get_repo(path):
+def get_repo(path, search_parent_directories=True):
     """
     Returns repo instance, if the subdirectory is provided it goes up to the base directory
     :param path: Repopath
@@ -956,7 +958,7 @@ def get_repo(path):
     """
     repo = None
     try:
-        repo = Repo(path, search_parent_directories=True)
+        repo = Repo(path, search_parent_directories=search_parent_directories)
     except InvalidGitRepositoryError:
         app.logger.warning(f'Invalid gitrepository access: {path}')
         pass
@@ -1007,17 +1009,17 @@ def update_repo_data(repo_data_path, key_vals):
     write_repo_data(repo_data_path, repo_data)
 
 
-def get_all_gt_files(repo, gt_ext=".gt.txt"):
+def get_all_gt_files(repo):
     return sorted([str(path.relative_to(repo.working_dir)) for path in
-                   Path(repo.working_dir).rglob(f'*{gt_ext}')])
+                   Path(repo.working_dir).rglob(f'*{fileformat_extension("*.gt.txt")}')])
 
 
-def add_subrepo_path(add_all, group_name, set_name, repo_path, parent_repo_path, info, readme_path, gt_ext=".gt.txt"):
+def add_subrepo_path(add_all, fileformat, image_dir, group_name, set_name, repo_path, parent_repo_path, info, readme_path):
     repogroup_dir = Path(DATA_DIR).joinpath(group_name)
     repo = get_repo(repo_path)
     if repo:
         # Check requirements
-        diff_list = get_all_gt_files(repo, gt_ext=".gt.txt")
+        diff_list = get_all_gt_files(repo)
         # Add credentials to repository level
         username, email = get_git_credentials(repo, level='repository' if app.config['WEB'] else 'user')
         set_git_credentials(repo, username, email)
@@ -1033,6 +1035,7 @@ def add_subrepo_path(add_all, group_name, set_name, repo_path, parent_repo_path,
             with open(repo_data_path, 'w') as fout:
                 json.dump({'path': str(repo_path),
                            'mode': 'sub',
+                           'image_dir': image_dir,
                            'parent_repo_path': parent_repo_path,
                            'name': set_name,
                            'info': info,
@@ -1066,13 +1069,23 @@ def add_subrepo_path(add_all, group_name, set_name, repo_path, parent_repo_path,
                            }, fout, indent=4)
 
 
-def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
+def fileformat_extension(fileformat):
+    return {'Text':'.gt.txt', 'PageXML':'.xml'}.get(fileformat, '')
+
+
+def add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme, reset_to=None):
     repogroup_dir = Path(DATA_DIR).joinpath(group_name)
     if not repogroup_dir.exists():
         repogroup_dir.mkdir()
     for repo_path in repo_paths:
         repo = get_repo(repo_path)
+        # Purge the selection
+        image_dir = Path(image_dir)
+        if not image_dir.exists() or image_dir.is_file():
+            image_dir = Path('.')
         if repo:
+            if reset_to:
+                repo.git.reset('--soft', reset_to)
             # Add untracked files to index (--intent-to-add)
             [repo.git.add('-N', item) for item in repo.untracked_files if ".gt.txt" in item]
             # Check requirements
@@ -1088,10 +1101,9 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                     app.logger.error(f'The repo contains no modified GT data: {repo_path}')
                     return
             else:
-                diff_list = get_all_gt_files(repo, gt_ext=".gt.txt")
-
+                diff_list = get_all_gt_files(repo)
             # Add credentials to repository level
-            username, email = get_git_credentials(repo, level='repository' if app.config['WEB'] else 'user')
+            username, email = get_git_credentials(repo, level='repository' if app.config.get('MODE', 'web') == 'web' else 'user')
             set_git_credentials(repo, username, email)
             repo_path = repo.working_dir
             repo_path_hash = hash_it(repo_path)
@@ -1112,6 +1124,7 @@ def add_repo_path(add_all, group_name, set_name, repo_paths, info, readme):
                 with open(repo_data_path, 'w') as fout:
                     json.dump({'path': repo_path,
                                'mode': 'main',
+                               'image_dir': str(image_dir.resolve()),
                                'parent_repo_path': None,
                                'name': set_name,
                                'info': infotext,
@@ -1149,22 +1162,9 @@ def hash_it(string):
     return sha256(string.encode('utf-8')).hexdigest()
 
 
-@click.command()
-@click.argument('repo-paths', nargs=-1, type=click.Path(exists=True))
-@click.option('-a', '--add-all', default=False, is_flag=True, help='Add all ground truth files to the check.')
-@click.option('-g', '--group-name', default="default", help='Set the gitrepo to a group')
-@click.option('-s', '--set-name', default="", help='Name of the set (default: Set path)')
-@click.option('-i', '--info', default="", help="Information to the GT")
-@click.option('--readme', nargs=1, type=click.Path(exists=True),
-              help="Add readme markdown file from gt repo manually "
-                   "(default: add automatically the readme file from the main gitfolder.)")
-@click.option('-w', '--web', default=False, is_flag=True, help='Start web version')
-@click.option('-s', '--single', default=False, is_flag=True, help='Skip GT selection')
-@click.option('-p', '--purge', multiple=True, type=click.Choice(['symlinks', 'logs', 'repodata', 'all']),
-              help='Purge selection')
-def run(repo_paths, add_all, group_name, set_name, info, readme, web, single, purge):
+def run_server(purge):
     """
-    Starting point to run the app
+    Starting point to run the app as server
     :return:
     """
     # Purge the selection
@@ -1175,7 +1175,7 @@ def run(repo_paths, add_all, group_name, set_name, info, readme, web, single, pu
             purge_folder(SUBREPO_DIR, create_gitkeep=True)
         if purge_sel in ['logs', 'all']:
             purge_folder(LOG_DIR, create_gitkeep=True)
-        if purge_sel in ['repodata', 'all']:
+        if purge_sel in ['repo_settings', 'all']:
             purge_folder(DATA_DIR, create_gitkeep=True)
     port = int(os.environ.get('PORT', int(PORT)))
     # Init basic logger
@@ -1188,22 +1188,34 @@ def run(repo_paths, add_all, group_name, set_name, info, readme, web, single, pu
     # Set current time as secret_key for the cookie
     # The cookie can keep variables for the whole session (max. 4kb)
     app.config['SECRET_KEY'] = SECRET_KEY
-    app.config['WEB'] = web
-    app.config['SINGLE'] = single
-    if repo_paths:
-        if single:
-            app.config['REPO_PATH'] = repo_paths[0]
-            add_repo_path(add_all, group_name, set_name, app.config['REPO_PATH'], info, readme)
-            # Start webrowser with url (can trigger twice)
-            webbrowser.open_new(f'http://{URL}:{PORT}/')
-        else:
-            # Add repo_paths
-            add_repo_path(add_all, group_name, set_name, repo_paths, info, readme)
+    app.config['MODE'] = 'web'
     try:
         app.run(host=URL, port=port, debug=True)
     except OSError:
         print("Address already in use!")
 
 
-if __name__ == "__main__":
-    run()
+def run_single(repo_path, add_all, image_dir, set_name):
+    """
+    Starting point to run the app for single repo editing
+    :return:
+    """
+    port = int(os.environ.get('PORT', int(PORT)))
+    # Init basic logger
+    app.logger.setLevel(logging.INFO)
+    if not app.debug:
+        logdir = Path(LOG_DIR)
+        if not logdir.exists():
+            logdir.mkdir()
+        logger(str(logdir.joinpath('app.log').resolve()))
+    # Set current time as secret_key for the cookie
+    # The cookie can keep variables for the whole session (max. 4kb)
+    app.config['SECRET_KEY'] = SECRET_KEY
+    app.config['MODE'] = 'single'
+    app.config['REPO_PATH'] = repo_path
+    add_repo_path(add_all, image_dir, "single", set_name, app.config['REPO_PATH'], "", "")
+    try:
+        app.run(host=URL, port=port, debug=True)
+        webbrowser.open_new(f'http://{URL}:{PORT}/')
+    except OSError:
+        print("Address already in use!")
