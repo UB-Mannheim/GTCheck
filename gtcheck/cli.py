@@ -11,11 +11,14 @@ def gtcheck():
 
 @gtcheck.command()
 @click.argument('working-dir', nargs=1, type=click.Path(exists=True))
-@click.option('-m', '--mets', default="mets.xml", help="METS to process, if no METS file is found a new one will be created")
-@click.option('-I', '--input-file-grp', required=True, default=['./', 'GTCHECK'], nargs=2, help='File group(s) used as input.')
+@click.option('-m', '--mets', default="mets.xml",
+              help="METS to process, if no METS file is found a new one will be created")
+@click.option('-I', '--input-file-grp', required=True, default=['./', 'GTCHECK'], nargs=2,
+              help='File group(s) used as input.')
 @click.option('-O', '--output-file-grp', help='File group(s) used as input.')
 @click.option('-g', '--page-id', help="ID(s) of the pages to process")
-@click.option('--overwrite', help="Overwrite the output file group or a page range (--page-id)", is_flag=True, default=False)
+@click.option('--overwrite', help="Overwrite the output file group or a page range (--page-id)", is_flag=True,
+              default=False)
 @click.option("--level", default="text", type=click.Choice(["text", "style", "all"]),
               help="Replace either only text or only style information or both")
 def update_page(working_dir, mets, input_file_grp, output_file_grp, page_id, overwrite, level):
@@ -26,17 +29,20 @@ def update_page(working_dir, mets, input_file_grp, output_file_grp, page_id, ove
 
 @gtcheck.command()
 @click.argument('working-dir', nargs=1, type=click.Path(exists=True))
-@click.option('-m', '--mets', default="mets.xml", help="METS to process, if no METS file is found a new one will be created")
+@click.option('-m', '--mets', default="mets.xml",
+              help="METS to process, if no METS file is found a new one will be created")
 @click.option('-I', '--input-file-grp', required=True, help='File group(s) used as input.')
 @click.option('-O', '--output-file-grp', default=['GTCHECK'], help='File group(s) used as input.')
 @click.option('-g', '--page-id', help="ID(s) of the pages to process")
-@click.option('--overwrite', help="Overwrite the output file group or a page range (--page-id)", is_flag=True, default=False)
+@click.option('--overwrite', help="Overwrite the output file group or a page range (--page-id)", is_flag=True,
+              default=False)
 @click.option('-r', '--reset-to', default='', help='Soft reset the current commit to another commit. '
                                                    'Reset to a specific commit, e.g. "a83cde", or go a fix number of '
                                                    'commits back, e.g. reset the last three commits "HEAD^3".')
-@click.option("--skip-ref",  is_flag=True, help="Skips referencing to the METS")
+@click.option("--skip-ref", is_flag=True, help="Skips referencing to the METS")
 @click.option("--outputmode", default="pair", type=click.Choice(["pair", "image", "text", "json"]),
-              help="Set output ['pair' -> image, text, json, 'images' -> image, json, 'text' -> text, json, 'json' -> file]")
+              help="Set output ['pair' -> image, text, json, 'images' -> image, json, "
+                   "'text' -> text, json, 'json' -> file]")
 @click.option("--cutmode", default="bbox", type=click.Choice(["polygon", "bbox"]),
               help="Set mode polygon or bbox.")
 @click.option("--feature_filter", default="",
@@ -45,14 +51,15 @@ def update_page(working_dir, mets, input_file_grp, output_file_grp, page_id, ove
               type=click.Choice(["image/bmp", "application/postscript", "image/gif", "image/jpeg",
                                  "image/jp2", "image/png", "image/x-portable-pixmap", "image/tiff"]),
               help="File format to save extracted images in.")
-@click.option("--transparency",  default=False, is_flag=True,
+@click.option("--transparency", default=False, is_flag=True,
               help="Add alpha channels with segment masks to the images")
 def extract_page(mets, working_dir, input_file_grp, output_file_grp, page_id,
-                            overwrite, reset_to, skip_ref, outputmode, cutmode, feature_filter, mimetype, transparency):
+                 overwrite, reset_to, skip_ref, outputmode, cutmode, feature_filter, mimetype, transparency):
     """ Extract lines from page files \n
      This function is based on ocrd-segment-extract-line"""
     return extract_lines_from_page(mets, working_dir, input_file_grp, output_file_grp, page_id,
-                            overwrite, reset_to, skip_ref, outputmode, cutmode, feature_filter, mimetype, transparency)
+                                   overwrite, reset_to, skip_ref, outputmode, cutmode, feature_filter, mimetype,
+                                   transparency)
 
 
 @gtcheck.command()
@@ -78,8 +85,8 @@ def run_server(purge):
 @click.argument('repo-paths', nargs=-1, type=click.Path(exists=True))
 @click.option('-a', '--add-all', default=False, is_flag=True, help='Add all ground truth files to the check.')
 @click.option('-r', '--reset-to', help='Soft reset the current commit to another commit. '
-                                                   'Reset to a specific commit, e.g. "a83cde", or go a fix number of '
-                                                   'commits back, e.g. reset the last three commits "HEAD^3".')
+                                       'Reset to a specific commit, e.g. "a83cde", or go a fix number of '
+                                       'commits back, e.g. reset the last three commits "HEAD^3".')
 @click.option('--image-dir', default='.', type=click.Path(),
               help='Path to imagefolder (default: Images are in the same folder as the text files).')
 @click.option('-g', '--group-name', default="default", help='Set the gitrepo to a group')

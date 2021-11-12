@@ -76,7 +76,12 @@
                             <input type="text" id=repo_name2 value="{{ repo_data['reserved_by'] }}" name="reserved_by" readonly>
                             <label for=repo_name2>Reserved by</label>
                         </div>
-                        <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
+                        {% if not repo_data['squashed'] %}
+                            <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
+                         {% else %}
+                            <button name="squash" class="btn waves-effect waves-light" type="submit" disabled>Squashed!</button>
+                        {% endif %}
+
                         <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button><br>
                     {% endif %}
                         <label>Progress: {{ repo_data['diff_overall']-(repo_data['diff_list']|length) }}/{{ repo_data['diff_overall'] }}</label>
@@ -153,8 +158,12 @@
                                     <input type="text" id=subrepo_name2 value="{{ sub_repo_data['reserved_by'] }}" name="reserved_by" readonly>
                                     <label for=subrepo_name2>Reserved by</label>
                                 </div>
-                                <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
-                                <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button><br>
+                                {% if not sub_repo_data['squashed'] %}
+                                    <button name="squash" class="btn waves-effect waves-light" type="submit" value="Squash!">Squash!</button>
+                                 {% else %}
+                                    <button name="squash" class="btn waves-effect waves-light" type="submit" disabled>Squashed!</button>
+                                {% endif %}
+                                    <!-- <button name="done" class="btn waves-effect waves-light" type="submit" value="Done!">Done!</button><br> -->
                             {% endif %}
                                 <label>Progress: {{ sub_repo_data['diff_overall']-(sub_repo_data['diff_list']|length) }}/{{ sub_repo_data['diff_overall'] }}</label>
                                 <label>Skipped: {{ sub_repo_data['diff_skipped'] }}</label>
