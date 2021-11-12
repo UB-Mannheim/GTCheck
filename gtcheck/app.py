@@ -261,7 +261,7 @@ def gtcheck(group_name, repo_path_hash, subrepo, repo=None, repo_data=None):
     # Diff Head
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
     if not repo_data.get('diff_list') or len(repo_data.get('diff_list')) <= 0:
-        repo_data['diff_list'] = sorted([item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path])
+        repo_data['diff_list'] = alphanum_sort([item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path])
     diff_list = repo_data.get('diff_list')[:]
     for filename in diff_list:
         gtdiff = GTDiffObject(repo, repo_path, filename)
@@ -559,6 +559,7 @@ def show_readme():
             fin.read(), extensions=["fenced_code"])
     return md_template_string
 
+
 @app.route('/info', methods=['GET', 'POST'])
 def info():
     """Show additional information"""
@@ -663,7 +664,7 @@ def edit_gtset(group_name, repo_path_hash):
                         sub_repo_ext = f'duplicate_{duplication + 1:02d}_part_{part + 1:02d}'
                         sub_repo_path = Path(SUBREPO_DIR).joinpath(repo_path_hash).joinpath(sub_repo_ext)
                         sub_repo = Repo(str(sub_repo_path.resolve()))
-                        sub_repo.git.add('.')
+                        sub_repo.git.add(u=True)
                         sub_repo.git.commit('-m', '[GTCheck] Add original state of modified files.')
                         for gtfile in diff_list[amount_per_part_offset:amount_per_part_offset + amount_per_parts]:
                             src = Path(repo_data['path']).joinpath(gtfile)
@@ -771,7 +772,7 @@ def edit_subset(group_name, repo_path_hash):
                                 int(base_set_repo.git.rev_list('--count', 'HEAD')) > 1:
                                     base_set_repo.git.reset('HEAD^1')
                             else:
-                                diff_list = sorted(
+                                diff_list = alphanum_sort(
                                     [item.a_path for item in base_set_repo.index.diff(None) if ".gt.txt" in item.a_path])
                                 base_set_path = Path(DATA_DIR).joinpath(group_name).joinpath(base_set.name + '.json')
                                 update_repo_data(base_set_path, {'diff_list': diff_list,
@@ -792,8 +793,7 @@ def edit_subset(group_name, repo_path_hash):
                         # TODO (urgent): Implement update diff_list via finisihed_list differences!
                         #base_set_data = get_repo_data(base_set_data_path)
                         #diff_list = set(base_set_data['diff_list']).difference(set(compare_set_data['finished_list']))
-                        diff_list = sorted(
-                            [item.a_path for item in base_set_repo.index.diff(None) if ".gt.txt" in item.a_path])
+                        diff_list = alphanum_sort([item.a_path for item in base_set_repo.index.diff(None) if ".gt.txt" in item.a_path])
                         update_repo_data(base_set_data_path, {'diff_list': diff_list,
                                                           'skipped_list': [],
                                                           'finished_list': [],
@@ -984,7 +984,7 @@ def get_grp_and_sub_repo_data():
     sub_repo_data_info = defaultdict(lambda: defaultdict(defaultdict))
     # Secure that 'default' dict is always on top
     repo_data_info['default'] = defaultdict()
-    for repo_data_path in sorted(Path(DATA_DIR).rglob("*.json")):
+    for repo_data_path in alphanum_sort(Path(DATA_DIR).rglob("*.json")):
         with open(repo_data_path, 'r') as fin:
             repo_data = json.load(fin)
         if repo_data.get('mode', 'main') == 'main':
@@ -1022,10 +1022,13 @@ def update_repo_data(repo_data_path, key_vals):
         repo_data[key] = val
     write_repo_data(repo_data_path, repo_data)
 
+def alphanum_sort(list):
+    alphanum = lambda text: int(text) if text.isdigit() else text
+    return sorted(list, key=lambda key: [alphanum(text) for text in re.split('([0-9]+)', key)])
 
 def get_all_gt_files(repo):
-    return sorted([str(path.relative_to(repo.working_dir)) for path in
-                   Path(repo.working_dir).rglob(f"*.gt.txt")])
+    return [fname+'.gt.txt' for fname in alphanum_sort([str(path.relative_to(repo.working_dir)).replace('.gt.txt', '') for path in
+                   Path(repo.working_dir).rglob(f"*.gt.txt")])]
 
 
 def add_subrepo_path(add_all, fileformat, image_dir, group_name, set_name, repo_path, parent_repo_path, info, readme_path):
@@ -1110,7 +1113,8 @@ def add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, re
                 if not repo.is_dirty():
                     app.logger.error(f'The repo contains no modified GT data: {repo_path}')
                     return
-                diff_list = sorted([item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path])
+                diff_list = alphanum_sort([item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path])
+
                 if not diff_list:
                     app.logger.error(f'The repo contains no modified GT data: {repo_path}')
                     return
