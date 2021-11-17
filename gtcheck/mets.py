@@ -8,7 +8,7 @@ from ocrd_utils import EXT_TO_MIME
 from ocrd.decorators import ocrd_cli_options, ocrd_cli_wrap_processor
 from ocrd_segment import ReplaceLines, ExtractLines, config
 
-from app import get_repo, Repo
+from .app import get_repo, Repo
 
 
 def get_workspace(xmlfolder, base_name="mets.xml"):

@@ -34,9 +34,30 @@ cd GTCheck
 
 ## Process steps
 
-### Start the process
+### Start the server
 
-    gtcheck path/to/repo
+    gtcheck run-server {parameters..}
+
+### Add repo 
+
+    gtcheck add-repo path/to/git-repo {parameters..}
+
+### Start single instance
+
+    gtcheck run-single path/to/git-repo {parameters..}
+
+### Working with page-xml files 
+Extract page-xml to gt-linepairs
+The working directory is either the path to a mets.xml file or the folder with page-xml files.
+It is possible to pass a mets.xml if it already exists, else a temporary mets-file will be created.
+
+    gtcheck extract-page path/to/working-directory {-m path/to/mets.xml}  -I {INPUTGROUPNAME} -O {OUTPUTGROUNAME} {parameters...}
+
+Add to server and check! (see above)
+
+Update page-xml files
+
+    gtcheck update-page path/to/repo  -I {./ GROUPNAME} {parameters...}
 
 ### Setup page
 In the first page you can set up your git credentials and select the branch or create a new branch for committing the modifications.

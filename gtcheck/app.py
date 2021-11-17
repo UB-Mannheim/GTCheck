@@ -20,7 +20,7 @@ import markdown
 from flask import Flask, render_template, request, Markup, flash, session, redirect, url_for
 from git import Repo, InvalidGitRepositoryError, GitCommandError
 
-from config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR, SUBREPO_DIR, ADMINPASSWORD, USERPASSWORD, SECRET_KEY
+from .config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR, SUBREPO_DIR, ADMINPASSWORD, USERPASSWORD, SECRET_KEY
 
 app = Flask(__name__, instance_path=str(Path(__file__).parent.resolve().joinpath("instance")))
 
@@ -1118,7 +1118,7 @@ def add_subrepo_path(add_all, fileformat, image_dir, group_name, set_name, repo_
 def add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme, reset_to=None):
     repogroup_dir = Path(DATA_DIR).joinpath(group_name)
     if not repogroup_dir.exists():
-        repogroup_dir.mkdir()
+        repogroup_dir.mkdir(parents=True, exist_ok=True)
     for repo_path in repo_paths:
         app.logger.info(repo_path + ' adding to GTCheck!')
         log = app.logger

@@ -1,7 +1,7 @@
 import click
 
-import gtcheck.app as app
-from gtcheck.mets import extract_lines_from_page, update_page_by_lines
+from .app import run_server as server, run_single as single, add_repo_path
+from .mets import extract_lines_from_page, update_page_by_lines
 
 
 @click.group()
@@ -71,14 +71,14 @@ def extract_page(mets, working_dir, input_file_grp, output_file_grp, page_id,
 @click.option('--image-dir', default='.', type=click.Path(),
               help='Path to imagefolder (default: Images are in the same folder as the text files).')
 def run_single(repo_path, add_all, image_dir, set_name):
-    return app.run_single(repo_path, add_all, image_dir, set_name)
+    return single(repo_path, add_all, image_dir, set_name)
 
 
 @gtcheck.command()
 @click.option('-p', '--purge', multiple=True, type=click.Choice(['symlinks', 'logs', 'repo_settings', 'all']),
               help='Purge selection')
 def run_server(purge):
-    return app.run_server(purge)
+    return server(purge)
 
 
 @gtcheck.command()
@@ -96,7 +96,7 @@ def run_server(purge):
               help="Add readme markdown file from gt repo manually "
                    "(default: add automatically the readme file from the main gitfolder.)")
 def add_repo(add_all, reset_to, image_dir, group_name, set_name, repo_paths, info, readme):
-    return app.add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme, reset_to)
+    return add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme, reset_to)
 
 
 if __name__ == '__main__':
