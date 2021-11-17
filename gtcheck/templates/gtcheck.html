@@ -228,7 +228,9 @@
 	<div style="margin-left: 10%; margin-right: 10%">
 		<div class="col s12 m6 l6"><h6 class="heading" style="margin-top: 10px;">ground truth: {{ fname }} image: {{ iname }}</h6></div>
 		<br>
-		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		{% if previmage != "" %}
+			<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=previmage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		{% endif %}
 		<div class="textline"><img src="{{ url_for('static', filename=image) }}" alt="" onerror="this.style.display='none'"/></div>
 			<div class="mod-text"><textarea id="keyboard" name="modtext" contenteditable="true">{{ modtext }}</textarea>
 				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-50%;float:right" type="toggle" name="action">
@@ -240,11 +242,12 @@
 				<a class="btn-floating waves-effect waves-light" style="position:relative;left:-10%;float:right" type="button">
 					<i class="material-icons" id="vkey-custom-icon">keyboard</i></a>
 				</div>
-
 			<div id="difftext" class="diff-text" style="clear: both" >{{ difftext }}</div>
 		<div id ="origtext" class="orig-text">{{ origtext }}</div>
 		<div style="margin-left: 50%;font-family: monospace;font-size: 1.5rem;text-align:right">commit-message<textarea class="commit-text" name="commitmsg">{{ commitmsg }}</textarea></div>
-		<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		{% if postimage != "" %}
+			<div class="textline"><img class="surr-image" src="{{ url_for('static', filename=postimage)  }}" alt="" onerror="this.style.display='none'"/></div>
+		{% endif %}
 	</div>
 	<div class="fixed-action-btn" style="right: 0px; left: 2%;" id="submit-group-sub">
 		<a><div style="width: 6%; margin: 0px;">

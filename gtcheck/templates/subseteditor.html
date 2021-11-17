@@ -47,7 +47,7 @@
             <div class="switch" id="new_duplicate">
                 <label>
                     Off
-                    <input type="checkbox" name="new_duplicate" id="new_duplicate_chk" checked disabled>
+                    <input type="checkbox" name="new_duplicate" id="new_duplicate_chk">
                     <span class="lever"></span>
                     On
                 </label>
@@ -107,6 +107,9 @@
             var x = document.getElementById("new_duplicate_chk");
             x.checked = false;
             x.disabled = true;
+            var x = document.getElementById("Base_main");
+            x.checked = false;
+            x.disabled= true;
             });
         $('#merge_sets').click(function() {
             var x = document.getElementById("Compare");
@@ -114,13 +117,17 @@
             var x = document.getElementById("new_duplicate_chk");
             x.checked = false;
             x.disabled = false;
+            var x = document.getElementById("Base_main");
+            x.disabled= false;
             });
         $('#diff_sets').click(function() {
             var x = document.getElementById("Compare");
             x.style.display = "block";
             var x = document.getElementById("new_duplicate_chk");
-            x.checked = true;
-            x.disabled = true;
+            x.checked = false;
+            x.disabled = false;
+            var x = document.getElementById("Base_main");
+            x.disabled= false;
             });
       });
     </script>

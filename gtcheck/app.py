@@ -17,7 +17,7 @@ from pathlib import Path
 from subprocess import check_output
 
 import markdown
-from flask import Flask, render_template, request, Markup, flash, session
+from flask import Flask, render_template, request, Markup, flash, session, redirect, url_for
 from git import Repo, InvalidGitRepositoryError, GitCommandError
 
 from config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR, SUBREPO_DIR, ADMINPASSWORD, USERPASSWORD, SECRET_KEY
@@ -589,14 +589,14 @@ def edit_gtset(group_name, repo_path_hash):
     try:
         data = request.form  # .to_dict(flat=False)
         if data.get('cancel', None) is not None:
-            return index()
+            return redirect('/')
         repo_data_path = get_repo_data_path(group_name, repo_path_hash)
         repo_data = get_repo_data(repo_data_path)
         repo = get_repo(repo_data['path'])
         if data.get('add_all', None) is not None:
             diff_list = get_all_gt_files(repo)
         else:
-            diff_list = repo_data.get('diff_list')
+            diff_list = repo_data.get('diff_list')+repo_data.get('skipped_list')
         if diff_list:
             splits = int(data.get('splits', '0')) if int(data.get('splits', '0')) >= 0 else 0
             duplications = int(data.get('duplications', '1')) if int(data.get('duplications', '0')) > 0 or splits > 0 else 0
@@ -607,7 +607,7 @@ def edit_gtset(group_name, repo_path_hash):
                                                   'removed_list': [],
                                                   'diff_overall': len(diff_list),
                                                   })
-                return index()
+                return redirect('/')
             if splits > 0:
                 if data.get('splitmode', None) == 'splitmode_parts':
                     amount_per_parts = int(math.ceil(len(diff_list) / splits))
@@ -664,7 +664,7 @@ def edit_gtset(group_name, repo_path_hash):
                         sub_repo_ext = f'duplicate_{duplication + 1:02d}_part_{part + 1:02d}'
                         sub_repo_path = Path(SUBREPO_DIR).joinpath(repo_path_hash).joinpath(sub_repo_ext)
                         sub_repo = Repo(str(sub_repo_path.resolve()))
-                        sub_repo.git.add(u=True)
+                        sub_repo.git.add('--all', A=True)
                         sub_repo.git.commit('-m', '[GTCheck] Add original state of modified files.')
                         for gtfile in diff_list[amount_per_part_offset:amount_per_part_offset + amount_per_parts]:
                             src = Path(repo_data['path']).joinpath(gtfile)
@@ -680,7 +680,7 @@ def edit_gtset(group_name, repo_path_hash):
                 repo.git.reset('HEAD^1')
     except Exception as e:
         internal_error(e)
-    return index()
+    return redirect('/')
 
 
 @app.route('/subseteditor/<group_name>/<repo_path_hash>', methods=['GET', 'POST'])
@@ -709,25 +709,24 @@ def edit_subset(group_name, repo_path_hash):
         data = request.form  # .to_dict(flat=False)
         repo_data_path = get_repo_data_path(group_name, repo_path_hash)
         repo_data = get_repo_data(repo_data_path)
-        # repo = get_repo(repo_data['path'])
         if data.get('cancel', None) is not None:
-            return index()
+            return redirect('/')
         if data.get('Base', None) == 'main':
             base_sets = [Path(repo_data['path'])]
         else:
             base_sets = [Path(SUBREPO_DIR).joinpath(repo_path_hash).joinpath(key.replace('Base_', '')) for key in
                          data.keys() if 'Base_' in key]
         # TODO: atm more restrictive as it has to be for testing purpose
-        if data.get('splitmode', None) == 'delete_sets' and data.get('Base', None) != 'main':
+        if data.get('splitmode', None) == 'delete_sets':
             for base_set in base_sets:
                 shutil.rmtree(str(base_set.resolve()), ignore_errors=True)
                 Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash).joinpath(base_set.name + '.json').unlink()
             # print(f'Delete files. {base_sets=}')
-            return index()
+            return redirect('/')
         compare_sets = [Path(SUBREPO_DIR).joinpath(repo_path_hash).joinpath(key.replace('Compare_', '')) for key in
                         data.keys() if 'Compare_' in key]
         if data.get('splitmode', None) in ['diff_sets', 'merge_sets']:
-            if data.get('new_duplicate', None) or data.get('splitmode', None) == 'diff_sets':
+            if data.get('new_duplicate', None):
                 new_duplicate_set = Path(SUBREPO_DIR).joinpath(repo_path_hash)
                 if data.get('Base', None) != 'main':
                     new_duplicate_set = new_duplicate_set.joinpath(
@@ -737,75 +736,102 @@ def edit_subset(group_name, repo_path_hash):
                 else:
                     new_duplicate_set = new_duplicate_set.joinpath(f"duplication_main-{data.get('Compare').split('_')[1]}_part_"
                                                                    f"all-{'&'.join([compare_set.name.split('_')[-1] for compare_set in compare_sets])}")
-                # copy base set and compare set to new duplicate path
-                if new_duplicate_set.exists():
-                    shutil.rmtree(new_duplicate_set, ignore_errors=True)
-                new_duplicate_set_repo = Repo.init(new_duplicate_set)
-                new_duplicate_set_repo.git.commit('--allow-empty', '-m', '[GTCheck] Initial empty commit.')
-
-                files_in_progress = defaultdict(set)
-                for base_set in base_sets:
-                    add_compare_to_base_repo(new_duplicate_set_repo, base_set, commit_staged=True)
-                    base_set_data = get_repo_data(get_repo_data_path(group_name, repo_path_hash, base_set.name))
-                    files_in_progress['base_set'].update(set(base_set_data['diff_list']+base_set_data['skipped_list']))
-                for compare_set in compare_sets:
-                    add_compare_to_base_repo(new_duplicate_set_repo, compare_set)
-                    compare_set_data = get_repo_data(get_repo_data_path(group_name, repo_path_hash, compare_set.name))
-                    files_in_progress['compare_set'].update(set(compare_set_data['diff_list'] + compare_set_data['skipped_list']).difference(files_in_progress['compare_set']))
-                    new_duplicate_set_repo.git.reset(f'HEAD^{len(compare_sets)}')
-                for file_in_progress in files_in_progress['base_set'].intersection(files_in_progress['compare_set']):
-                    file_in_progress = new_duplicate_set.joinpath(file_in_progress.replace('.gt.txt', '.json'))
-                    if file_in_progress.exists():
-                        file_in_progress.unlink()
-                # Add repo to data folder
                 info = (repo_data.get('info', '') + " This repo is a new duplicate.").strip()
-                add_subrepo_path(True, repo_data.get('fileformat'), repo_data.get('image_dir'), group_name,
-                                 new_duplicate_set.name, new_duplicate_set, repo_data.get('path'), info, "")
+                # copy base set and compare set to new duplicate path
+                new_duplicate_set_data_path = get_repo_data_path(group_name, repo_path_hash, new_duplicate_set.name)
+                if new_duplicate_set.exists():
+                    new_duplicate_set_repo = Repo(new_duplicate_set)
+                    new_duplicate_set_data = get_repo_data(new_duplicate_set_data_path)
+                else:
+                    new_duplicate_set_repo = Repo.init(new_duplicate_set)
+                    new_duplicate_set_repo.git.commit('--allow-empty', '-m', '[GTCheck] Initial empty commit.')
+                    new_duplicate_set_data = add_subrepo_path(True, repo_data.get('fileformat'),
+                                                              repo_data.get('image_dir'), group_name,
+                                                              new_duplicate_set.name, new_duplicate_set,
+                                                              repo_data.get('path'), info, repo_data.get('readme', ''))
+                filter = new_duplicate_set_data.get('removed_list') + new_duplicate_set_data.get('finished_list')
+
+                added_files = []
+
+                for base_set in base_sets:
+                    if data.get('Base', None) == 'main':
+                        base_set_data = repo_data
+                    else:
+                        base_set_data = get_repo_data(get_repo_data_path(group_name, repo_path_hash, base_set.name))
+                    added_files.extend(add_compare_to_base_repo(new_duplicate_set_data, base_set_data, filter=filter))
+                for compare_set in compare_sets:
+                    compare_set_data = get_repo_data(get_repo_data_path(group_name, repo_path_hash, compare_set.name))
+                    mod_added_files = list(set(added_files).intersection(set([mod_file for mod_file in
+                     compare_set_data.get('removed_list') + compare_set_data.get('finished_list') if
+                     filter is None or mod_file not in filter])))
+                    if mod_added_files:
+                        new_duplicate_set_repo.git.add(mod_added_files)
+                        new_duplicate_set_repo.git.commit(mod_added_files, '-m',
+                                                          f"[GTCheck] Merged with {' ,'.join(mod_added_files)}")
+
+                    added_files.extend(add_compare_to_base_repo(new_duplicate_set_data, compare_set_data, filter=filter))
+
+                added_files = list(set(added_files))
+                new_duplicate_set_repo.git.add('-N', added_files)
+                diff_list = alphanum_sort(new_duplicate_set_data.get('diff_list', list())+added_files)
+                update_repo_data_modified_diff_list(new_duplicate_set_data_path, new_duplicate_set_data, diff_list)
             else:
                 for base_set in base_sets:
                     base_set_repo = Repo(base_set)
-                    for compare_set in compare_sets:
-                        if base_set.name.rsplit('_', 1)[1] == compare_set.name.rsplit('_', 1)[1] and \
-                                base_set.name != compare_set.name:
-                            add_compare_to_base_repo(base_set_repo, compare_set, commit_staged=True)
-                            if data.get('splitmode', None) != 'merge_sets' and \
-                                int(base_set_repo.git.rev_list('--count', 'HEAD')) > 1:
-                                    base_set_repo.git.reset('HEAD^1')
-                            else:
-                                diff_list = alphanum_sort(
-                                    [item.a_path for item in base_set_repo.index.diff(None) if ".gt.txt" in item.a_path])
-                                base_set_path = Path(DATA_DIR).joinpath(group_name).joinpath(base_set.name + '.json')
-                                update_repo_data(base_set_path, {'diff_list': diff_list,
-                                                                 'skipped_list': [],
-                                                                 'finished_list': [],
-                                                                 'removed_list': [],
-                                                                 'diff_overall': len(diff_list),
-                                                                 })
-                        elif len(base_sets) == 1:
-                            add_compare_to_base_repo(base_set_repo, compare_set, commit_staged=True)
-                    if len(base_sets) == 1 and data.get('splitmode', None) != 'merge_sets':
-                        base_set_repo.git.reset(f'HEAD^{len(compare_sets)}')
+                    if data.get('Base', None) == 'main':
+                        base_set_data_path = repo_data_path
+                        base_set_data = repo_data
                     else:
-                        if data.get('Base', None) != 'main':
-                            base_set_data_path = Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash).joinpath(base_set.name + '.json')
-                        else:
-                            base_set_data_path = Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash + '.json')
-                        # TODO (urgent): Implement update diff_list via finisihed_list differences!
-                        #base_set_data = get_repo_data(base_set_data_path)
-                        #diff_list = set(base_set_data['diff_list']).difference(set(compare_set_data['finished_list']))
-                        diff_list = alphanum_sort([item.a_path for item in base_set_repo.index.diff(None) if ".gt.txt" in item.a_path])
-                        update_repo_data(base_set_data_path, {'diff_list': diff_list,
-                                                          'skipped_list': [],
-                                                          'finished_list': [],
-                                                          'removed_list': [],
-                                                          'diff_overall': len(diff_list),
-                                                          })
+                        base_set_data_path = get_repo_data_path(group_name, repo_path_hash, base_set.name)
+                        base_set_data = get_repo_data(base_set_data_path)
+                    added_files = []
+                    for compare_set in compare_sets:
+                        if data.get('Base', None) == 'main' or \
+                                (base_set.name.rsplit('_', 1)[1] == compare_set.name.rsplit('_', 1)[1] and
+                                base_set.name != compare_set.name):
+                            compare_set_data = get_repo_data(get_repo_data_path(group_name, repo_path_hash, compare_set.name))
+                            added_files.extend(add_compare_to_base_repo(base_set_data, compare_set_data))
+                    if data.get('splitmode', None) == 'merge_sets':
+                        base_set_repo.git.add(added_files)
+                        base_set_repo.git.commit(added_files, '-m', f"[GTCheck] Merged with {' ,'.join([cset.name for cset in compare_sets])}")
+                    diff_list = alphanum_sort([item.a_path for item in base_set_repo.index.diff(None) if '.gt.txt' in item.a_path])
+                    update_repo_data_modified_diff_list(base_set_data_path, base_set_data, diff_list)
     except Exception as e:
         internal_error(e)
-    return index()
+    return redirect('/')
 
 
-def add_compare_to_base_repo(base_repo, compare_repo_path, commit_staged=False):
+def update_repo_data_modified_diff_list(repo_data_path, repo_data, diff_list):
+    skipped_list = alphanum_sort(set(repo_data.get('skipped_list')).difference(set(diff_list)))
+    finished_list = alphanum_sort(set(repo_data.get('finished_list')).difference(set(diff_list)))
+    removed_list = alphanum_sort(set(repo_data.get('removed_list')).difference(set(diff_list)))
+    update_repo_data(repo_data_path, {'diff_list': diff_list,
+                                          'skipped_list': skipped_list,
+                                          'finished_list': finished_list,
+                                          'removed_list': removed_list,
+                                          'diff_overall': len(diff_list) + len(skipped_list) + len(finished_list) + len(
+                                              removed_list),
+                                          'undo_fpath': '',
+                                          'undo_value': ''})
+
+def add_compare_to_base_repo(base_set_data, compare_set_data, filter=None):
+    """ Replace modified files in the base repo withouth git history """
+    mod_list = [mod_file for mod_file in compare_set_data.get('removed_list')+compare_set_data.get('finished_list') if filter is None or mod_file not in filter]
+    added_files = []
+    for fileformat in ['.gt.txt', '.json']:
+        for mod_fname in mod_list:
+            mod_fname = mod_fname.replace('.gt.txt', fileformat)
+            mod_fpath = Path(compare_set_data.get('path')).joinpath(mod_fname)
+            if mod_fpath.exists():
+                base_fname = Path(base_set_data.get('path')).joinpath(mod_fname)
+                shutil.copy(mod_fpath, base_fname)
+                if fileformat == '.gt.txt':
+                    added_files.append(mod_fname)
+    return added_files
+
+
+def add_compare_to_base_repo_as_remote(base_repo, compare_repo_path, commit_staged=False):
+    """ Merging the compare git repo with a remote pull this keeps the git history while """
     compare_repo = Repo(compare_repo_path)
     # Add untracked files to index (--intent-to-add)
     [compare_repo.git.add('-A', item) for item in compare_repo.untracked_files if ".md" in item or '.json' in item]
@@ -856,20 +882,20 @@ def setup(group_name, repo_path_hash, subrepo='main'):
         update_repo_data(repo_data_path, {'reserved_since': f"{datetime.date.today()}", 'reserved_by': reserved_by})
     if data.get('reservation_cancel', None) is not None:
         update_repo_data(repo_data_path, {'reserved_since': '', 'reserved_by': ''})
-        return index()
+        return redirect('/')
     elif data.get('squash', None) is not None:
         repo.git.reset(repo_data.get('init_head'))
         difflist = [item.a_path for item in repo.index.diff(None) if ".gt.txt" in item.a_path]
         repo.git.add(*difflist, A=True)
         repo.git.commit('-m', f'[GTCheck] Squashed-commit added {len(difflist)} files.')
         update_repo_data(repo_data_path, {'squashed': repo.head.commit.hexsha})
-        return index()
+        return redirect('/')
     elif data.get('done', None) is not None:
         if subrepo == 'main':
             Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash + ".json").unlink()
         else:
             Path(DATA_DIR).joinpath(group_name).joinpath(repo_path_hash).joinpath(subrepo + ".json").unlink()
-        return index()
+        return redirect('/')
     diff_head = repo.git.diff('--cached', '--shortstat').strip().split(" ")[0]
     if diff_head != "":
         flash(
@@ -903,7 +929,7 @@ def password_validation():
     session['username'] = data.get('username', 'GTChecker')
     session['email'] = data.get('email', '')
     session.pop('_flashes', None)
-    return index()
+    return redirect('/')
 
 
 @app.route("/", methods=['GET'])
@@ -1024,7 +1050,7 @@ def update_repo_data(repo_data_path, key_vals):
 
 def alphanum_sort(list):
     alphanum = lambda text: int(text) if text.isdigit() else text
-    return sorted(list, key=lambda key: [alphanum(text) for text in re.split('([0-9]+)', key)])
+    return sorted(list, key=lambda key: [alphanum(text) for text in re.split('([0-9]+)', str(key))])
 
 def get_all_gt_files(repo):
     return [fname+'.gt.txt' for fname in alphanum_sort([str(path.relative_to(repo.working_dir)).replace('.gt.txt', '') for path in
@@ -1049,43 +1075,44 @@ def add_subrepo_path(add_all, fileformat, image_dir, group_name, set_name, repo_
                 app.logger.warning(f'The repo contained no head commit, so it got one created: {repo_path}')
                 repo.git.commit('--allow-empty', '-m', '[GTCheck] Initial empty commit.')
                 init_head = repo.head.commit.hexsha
+            data = {'path': str(repo_path),
+                    'mode': 'sub',
+                    'image_dir': image_dir,
+                    'parent_repo_path': parent_repo_path,
+                    'name': set_name,
+                    'info': info,
+                    'squashed': None,
+                    'done': False,
+                    'init_head': init_head,
+                    'add_all': add_all,
+                    'readme': readme_path,
+                    'reserved_by': '',
+                    'reserved_since': '',
+                    'last_action': '',
+                    'username': '',
+                    'email': '',
+                    'addcc': False,
+                    'skipcc': True,
+                    'regexnum': "^(.*?)(\d+)(\D*)$",
+                    'filter_all': '',
+                    'filter_from': '',
+                    'filter_to': '',
+                    'diff_list': diff_list,
+                    'finished_list': [],
+                    'removed_list': [],
+                    'skipped_list': [],
+                    'diff_overall': len(diff_list),
+                    'font': 'RobotoMonoGTC',
+                    'vkeylang': '',
+                    'custom_keys': [],
+                    'modtext': '',
+                    'fname': '',
+                    'fpath': '',
+                    'undo_fpath': '',
+                    'undo_value': ''}
             with open(repo_data_path, 'w') as fout:
-                json.dump({'path': str(repo_path),
-                           'mode': 'sub',
-                           'image_dir': image_dir,
-                           'parent_repo_path': parent_repo_path,
-                           'name': set_name,
-                           'info': info,
-                           'squashed': None,
-                           'done': False,
-                           'init_head': init_head,
-                           'add_all': add_all,
-                           'readme': readme_path,
-                           'reserved_by': '',
-                           'reserved_since': '',
-                           'last_action': '',
-                           'username': '',
-                           'email': '',
-                           'addcc': False,
-                           'skipcc': True,
-                           'regexnum': "^(.*?)(\d+)(\D*)$",
-                           'filter_all': '',
-                           'filter_from': '',
-                           'filter_to': '',
-                           'diff_list': diff_list,
-                           'finished_list': [],
-                           'removed_list': [],
-                           'skipped_list': [],
-                           'diff_overall': len(diff_list),
-                           'font': 'RobotoMonoGTC',
-                           'vkeylang': '',
-                           'custom_keys': [],
-                           'modtext': '',
-                           'fname': '',
-                           'fpath': '',
-                           'undo_fpath': '',
-                           'undo_value': '',
-                           }, fout, indent=4)
+                json.dump(data , fout, indent=4)
+            return data
 
 
 def add_repo_path(add_all, image_dir, group_name, set_name, repo_paths, info, readme, reset_to=None):
