@@ -21,7 +21,7 @@ work for other similar environments.
 
 ### 2. Copy this repository
 ```
-git clone https://github.com/JKamlah/GTCheck.git
+git clone https://github.com/UB-Mannheim/GTCheck.git
 cd GTCheck
 ```
 
@@ -29,6 +29,7 @@ cd GTCheck
 
     python3 -m venv venv
     source venv/bin/activate
+    pip install --upgrade pip setuptools
     pip install -r requirements.txt
     python setup.py install
 
