@@ -1,14 +1,13 @@
-from ocrd import resolver
-
-from pathlib import Path
 import imghdr
 import shutil
+from pathlib import Path
 
-from ocrd_utils import EXT_TO_MIME
+from ocrd import resolver
 from ocrd.decorators import ocrd_cli_options, ocrd_cli_wrap_processor
-from ocrd_segment import ReplaceLines, ExtractLines, config
+from ocrd_segment import ExtractLines, ReplaceLines, config
+from ocrd_utils import EXT_TO_MIME
 
-from .app import get_repo, Repo
+from .app import Repo, get_repo
 
 
 def get_workspace(xmlfolder, base_name="mets.xml"):

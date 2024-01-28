@@ -1,6 +1,8 @@
 import click
 
-from .app import run_server as server, run_single as single, add_repo_path
+from .app import add_repo_path
+from .app import run_server as server
+from .app import run_single as single
 from .mets import extract_lines_from_page, update_page_by_lines
 
 

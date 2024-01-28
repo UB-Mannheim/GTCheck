@@ -10,17 +10,19 @@ import shutil
 import webbrowser
 from collections import defaultdict
 from configparser import NoSectionError
-from hashlib import sha256, sha1
+from hashlib import sha1, sha256
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from subprocess import check_output
 
 import markdown
-from flask import Flask, render_template, request, Markup, flash, session, redirect, url_for
-from git import Repo, InvalidGitRepositoryError, GitCommandError
+from flask import (Flask, Markup, flash, redirect, render_template, request,
+                   session, url_for)
+from git import GitCommandError, InvalidGitRepositoryError, Repo
 
-from .config import URL, PORT, LOG_DIR, DATA_DIR, SYMLINK_DIR, SUBREPO_DIR, ADMINPASSWORD, USERPASSWORD, SECRET_KEY
+from .config import (ADMINPASSWORD, DATA_DIR, LOG_DIR, PORT, SECRET_KEY,
+                     SUBREPO_DIR, SYMLINK_DIR, URL, USERPASSWORD)
 
 app = Flask(__name__, instance_path=str(Path(__file__).parent.resolve().joinpath("instance")))
 
