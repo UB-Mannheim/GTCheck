@@ -18,7 +18,7 @@ from subprocess import check_output
 
 import markdown
 from flask import (Flask, Markup, flash, redirect, render_template, request,
-                   session, url_for)
+                   session,)
 from git import GitCommandError, InvalidGitRepositoryError, Repo
 
 from .config import (ADMINPASSWORD, DATA_DIR, LOG_DIR, PORT, SECRET_KEY,
