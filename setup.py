@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(name='gtcheck',
       version='0.6.0',
@@ -21,7 +21,7 @@ setup(name='gtcheck',
           'gitpython'
       ],
       include_package_data=True,
-      package_data = {'gtcheck': ['gtcheck/*', '*.py', 'favicon.ico']},
+      package_data={'gtcheck': ['gtcheck/*', '*.py', 'favicon.ico']},
       classifiers=[
           'Environment :: Console',
           'Environment :: Web Environment',
@@ -31,4 +31,4 @@ setup(name='gtcheck',
           'License :: OSI Approved :: Apache Software License',
           'Topic :: Software Development :: Version Control'
       ],
-)
+      )
